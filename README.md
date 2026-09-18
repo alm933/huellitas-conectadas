@@ -149,7 +149,11 @@ Autor: Alejandro Leon
 
 
 
+<<<<<<< HEAD
 ## 2. Estado actual
+=======
+## 2.Estado actual
+>>>>>>> 1f90255 (feat: proteger endpoints con autenticacion JWT)
 
 La versión actual incluye:
 

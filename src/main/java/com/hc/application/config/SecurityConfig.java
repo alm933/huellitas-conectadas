@@ -13,6 +13,11 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.hc.application.security.JwtAuthenticationFilter;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 public class SecurityConfig {
 
@@ -26,7 +31,19 @@ public class SecurityConfig {
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/v1/auth/**").permitAll()
-                    .anyRequest().authenticated());
+                    .anyRequest().authenticated())
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                .exceptionHandling(exception -> exception
+                .authenticationEntryPoint((request, response, error) ->
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Autenticación requerida"
+                )
+        )
+);
 
         return http.build();
     }
@@ -51,6 +68,11 @@ public class SecurityConfig {
     }
 
 
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) 
+        {
+            this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        }
 
 }

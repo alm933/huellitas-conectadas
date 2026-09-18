@@ -11,6 +11,15 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+import java.util.Date;
+
+import org.springframework.security.core.userdetails.UserDetails;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+
+
 @Service
 public class JwtService {
 
@@ -43,4 +52,41 @@ public class JwtService {
                 .signWith(secretKey)
                 .compact();
     }
+
+    public String extraerUsername(String token) {
+    return obtenerClaims(token)
+            .getPayload()
+            .getSubject();
+}
+
+public boolean esValido(
+        String token,
+        UserDetails usuario) {
+
+    try {
+        Claims claims = obtenerClaims(token).getPayload();
+
+        String username = claims.getSubject();
+        Date expiracion = claims.getExpiration();
+
+        return username.equals(usuario.getUsername())
+                && expiracion.after(new Date());
+
+    } catch (JwtException | IllegalArgumentException e) {
+        return false;
+    }
+}
+
+private Jws<Claims> obtenerClaims(String token) {
+    return Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token);
+}
+
+
+
+
+
+
 }
