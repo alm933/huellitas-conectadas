@@ -149,12 +149,7 @@ Autor: Alejandro Leon
 
 
 
-## 2. Actualizar el `README.md`
-
-Agrega una sección como esta:
-
-```markdown
-## Estado actual
+## 2. Estado actual
 
 La versión actual incluye:
 
