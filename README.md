@@ -146,3 +146,32 @@ Curso: Soluciones Web y Aplicaciones Distribuidas
 Proyecto: Huellitas Conectadas
 
 Autor: Alejandro Leon
+
+
+
+## 2. Actualizar el `README.md`
+
+Agrega una sección como esta:
+
+```markdown
+## Estado actual
+
+La versión actual incluye:
+
+- CRUD de organizaciones.
+- CRUD de animales.
+- Registro de usuarios.
+- Login de usuarios.
+- BCrypt para proteger contraseñas.
+- Generación de tokens JWT.
+- Spring Security configurado.
+- Persistencia de tokens en MySQL.
+
+### Endpoints de autenticación
+
+```http
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+
+
+## 3.
