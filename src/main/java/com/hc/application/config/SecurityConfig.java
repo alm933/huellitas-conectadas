@@ -1,6 +1,7 @@
 package com.hc.application.config;
 
 import java.util.List;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -58,6 +59,8 @@ public CorsConfigurationSource corsConfigurationSource() {
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.PATCH, "/api/v1/organizaciones/*/activo")
+                    .hasAuthority("ADMIN")
                     .anyRequest().authenticated())
                 .addFilterBefore(
                         jwtAuthenticationFilter,
