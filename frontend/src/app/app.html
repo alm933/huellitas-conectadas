@@ -22,7 +22,7 @@
     </section>
   </main>
 } @else {
-  <main class="page">
+  <main class="page" [class.registration-page]="view() === 'register'">
     <section class="login-card" [class.register-card]="view() === 'register'">
       <header class="brand">
         <div class="brand-mark" aria-hidden="true">🐾</div>
@@ -282,17 +282,19 @@
       }
     </section>
 
-    <aside class="welcome-panel">
-      <div class="welcome-content">
-        <p class="eyebrow">Huellitas Conectadas</p>
-        <h2>Cada encuentro puede convertirse en una nueva historia.</h2>
-        <p>
-          Un espacio para acercar a las organizaciones y a las personas que quieren
-          darles un hogar a los animales.
-        </p>
-      </div>
-      <span class="decorative-paw paw-one" aria-hidden="true">🐾</span>
-      <span class="decorative-paw paw-two" aria-hidden="true">🐾</span>
-    </aside>
+    @if (view() === 'login') {
+      <aside class="welcome-panel">
+        <div class="welcome-content">
+          <p class="eyebrow">Huellitas Conectadas</p>
+          <h2>Cada encuentro puede convertirse en una nueva historia.</h2>
+          <p>
+            Un espacio para acercar a las organizaciones y a las personas que quieren
+            darles un hogar a los animales.
+          </p>
+        </div>
+        <span class="decorative-paw paw-one" aria-hidden="true">🐾</span>
+        <span class="decorative-paw paw-two" aria-hidden="true">🐾</span>
+      </aside>
+    }
   </main>
 }
