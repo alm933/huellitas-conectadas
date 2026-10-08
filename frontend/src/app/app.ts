@@ -1,5 +1,5 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
   FormControl,
@@ -31,6 +31,19 @@ interface RegistrationResponse {
   lastName: string;
   email: string;
   role: UserRole;
+}
+
+interface OrganizationSummary {
+  id: number;
+  nombre: string;
+  tipo: string;
+  correo: string;
+  telefono: string;
+  direccion: string;
+  distrito: string;
+  descripcion: string | null;
+  activo: boolean;
+  fechaRegistro: string | null;
 }
 
 interface AdoptanteRegistration {
@@ -73,6 +86,17 @@ export class App {
   protected readonly view = signal<'login' | 'register'>('login');
   protected readonly registrationType = signal<RegistrationType>('ADOPTANTE');
   protected readonly session = signal<LoginResponse | null>(null);
+  protected readonly organizations = signal<OrganizationSummary[]>([]);
+  protected readonly loadingOrganizations = signal(false);
+  protected readonly organizationError = signal('');
+  protected readonly organizationNotice = signal('');
+  protected readonly updatingOrganizationId = signal<number | null>(null);
+  protected readonly pendingOrganizations = computed(() =>
+    this.organizations().filter(organization => !organization.activo)
+  );
+  protected readonly activeOrganizations = computed(() =>
+    this.organizations().filter(organization => organization.activo)
+  );
 
   protected readonly loginForm = new FormGroup({
     email: new FormControl('', {
@@ -158,6 +182,9 @@ export class App {
         this.session.set(response);
         this.message.set('');
         this.loading.set(false);
+        if (response.role === 'ADMIN') {
+          this.loadOrganizations(response.token);
+        }
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
@@ -272,8 +299,78 @@ export class App {
     }
   }
 
+  protected refreshOrganizations(): void {
+    const currentSession = this.session();
+    if (currentSession?.role === 'ADMIN') {
+      this.loadOrganizations(currentSession.token);
+    }
+  }
+
+  private loadOrganizations(token: string): void {
+    this.loadingOrganizations.set(true);
+    this.organizationError.set('');
+    this.organizationNotice.set('');
+
+    this.http.get<OrganizationSummary[]>(`${API_URL}/organizaciones`, {
+      headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
+    }).subscribe({
+      next: organizations => {
+        this.organizations.set(organizations);
+        this.loadingOrganizations.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loadingOrganizations.set(false);
+        this.organizationError.set(
+          error.status === 401 || error.status === 403
+            ? 'Tu sesión no tiene permiso para consultar las organizaciones.'
+            : 'No se pudieron cargar las organizaciones. Intenta actualizar la lista.'
+        );
+      }
+    });
+  }
+
+  protected toggleOrganization(organization: OrganizationSummary): void {
+    const currentSession = this.session();
+    if (!currentSession || currentSession.role !== 'ADMIN') {
+      return;
+    }
+
+    this.updatingOrganizationId.set(organization.id);
+    this.organizationError.set('');
+    this.organizationNotice.set('');
+
+    this.http.patch<OrganizationSummary>(
+      `${API_URL}/organizaciones/${organization.id}/activo`,
+      { activo: !organization.activo },
+      { headers: new HttpHeaders({ Authorization: `Bearer ${currentSession.token}` }) }
+    ).subscribe({
+      next: updatedOrganization => {
+        this.organizations.update(items =>
+          items.map(item => item.id === updatedOrganization.id ? updatedOrganization : item)
+        );
+        this.updatingOrganizationId.set(null);
+        this.organizationNotice.set(
+          updatedOrganization.activo
+            ? `${updatedOrganization.nombre} fue activada.`
+            : `${updatedOrganization.nombre} fue desactivada.`
+        );
+      },
+      error: (error: HttpErrorResponse) => {
+        this.updatingOrganizationId.set(null);
+        this.organizationError.set(
+          error.status === 401 || error.status === 403
+            ? 'Spring rechazó la acción. Verifica que la cuenta tenga rol ADMIN y que el token siga vigente.'
+            : 'No se pudo cambiar el estado de la organización. Intenta de nuevo.'
+        );
+      }
+    });
+  }
+
   protected logout(): void {
     this.session.set(null);
+    this.organizations.set([]);
+    this.organizationError.set('');
+    this.organizationNotice.set('');
     this.loginForm.reset();
     this.message.set('');
   }
