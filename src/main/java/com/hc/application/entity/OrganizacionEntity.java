@@ -4,6 +4,11 @@ import java.time.LocalDateTime;
 
 import com.hc.application.enums.TipoOrganizacion;
 
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -29,6 +34,12 @@ import lombok.Setter;
 @NoArgsConstructor 
 @AllArgsConstructor 
 public class OrganizacionEntity {
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id", unique = true)
+    private UsuarioEntity usuario;
+
+
 
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)

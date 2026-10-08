@@ -11,19 +11,33 @@ import com.hc.application.dto.auth.UsuarioResponse;
 //import com.hc.application.entity.UsuarioEntity;
 import com.hc.application.enums.UsuarioRol;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.hc.application.dto.auth.RegistroOrganizacionRequest;
+import com.hc.application.entity.OrganizacionEntity;
+import com.hc.application.repository.OrganizacionRepository;
+
+
 
 @Service
 public class UsuarioService {
+
+    private final OrganizacionRepository organizacionRepository;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(
-            UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+        UsuarioRepository usuarioRepository,
+        OrganizacionRepository organizacionRepository,
+        PasswordEncoder passwordEncoder) {
 
-        this.usuarioRepository = usuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+    this.usuarioRepository = usuarioRepository;
+    this.organizacionRepository = organizacionRepository;
+    this.passwordEncoder = passwordEncoder;
+
     }
 
     public UsuarioEntity registrar(UsuarioEntity usuario)
@@ -66,6 +80,54 @@ public UsuarioResponse registrar(RegistroRequest request) {
             guardado.getRole()
     );
 }
+
+@Transactional
+public UsuarioResponse registrarOrganizacion(
+        RegistroOrganizacionRequest request) {
+
+    if (usuarioRepository.existsByEmail(request.getEmail())) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT, "El correo de acceso ya está registrado");
+    }
+
+    if (organizacionRepository.existsByCorreo(request.getCorreo())) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT, "El correo de contacto ya está registrado");
+    }
+
+    UsuarioEntity usuario = UsuarioEntity.builder()
+            .name(request.getName())
+            .lastName(request.getLastName())
+            .email(request.getEmail())
+            .pass(passwordEncoder.encode(request.getPass()))
+            .role(UsuarioRol.ORGANIZACION)
+            .activo(true)
+            .build();
+
+    usuario = usuarioRepository.save(usuario);
+
+    OrganizacionEntity organizacion = new OrganizacionEntity();
+    organizacion.setNombre(request.getNombre());
+    organizacion.setTipo(request.getTipo());
+    organizacion.setCorreo(request.getCorreo());
+    organizacion.setTelefono(request.getTelefono());
+    organizacion.setDireccion(request.getDireccion());
+    organizacion.setDistrito(request.getDistrito());
+    organizacion.setDescripcion(request.getDescripcion());
+    organizacion.setActivo(false);
+    organizacion.setUsuario(usuario);
+
+    organizacionRepository.save(organizacion);
+
+    return new UsuarioResponse(
+            usuario.getId(),
+            usuario.getName(),
+            usuario.getLastName(),
+            usuario.getEmail(),
+            usuario.getRole()
+    );
+}
+
 
 
 }

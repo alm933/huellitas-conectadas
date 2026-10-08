@@ -6,4 +6,6 @@ import com.hc.application.entity.OrganizacionEntity;
 
 public interface OrganizacionRepository extends JpaRepository<OrganizacionEntity,Long>{
 
+    boolean existsByCorreo(String correo);
+
 }
