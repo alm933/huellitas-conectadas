@@ -22,99 +22,277 @@
     </section>
   </main>
 } @else {
-<main class="page">
-  <section class="login-card" aria-labelledby="login-title">
-    <header class="brand">
-      <div class="brand-mark" aria-hidden="true">🐾</div>
-      <div>
-        <p class="brand-name">Huellitas</p>
-        <p class="brand-tagline">Conectadas</p>
-      </div>
-    </header>
+  <main class="page">
+    <section class="login-card" [class.register-card]="view() === 'register'">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true">🐾</div>
+        <div>
+          <p class="brand-name">Huellitas</p>
+          <p class="brand-tagline">Conectadas</p>
+        </div>
+      </header>
 
-    <div class="intro">
-      <p class="eyebrow">Bienvenido de nuevo</p>
-      <h1 id="login-title">Inicia sesión</h1>
-      <p class="intro-text">
-        Ingresa a tu cuenta para continuar.
-      </p>
-    </div>
+      @if (view() === 'login') {
+        <div class="intro">
+          <p class="eyebrow">Bienvenido de nuevo</p>
+          <h1 id="login-title">Inicia sesión</h1>
+          <p class="intro-text">Ingresa a tu cuenta para continuar.</p>
+        </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
-      <div class="field">
-        <label for="email">Correo electrónico</label>
-        <input
-          id="email"
-          type="email"
-          formControlName="email"
-          placeholder="nombre@correo.com"
-          autocomplete="username"
-          [attr.aria-invalid]="
-            loginForm.controls.email.touched && loginForm.controls.email.invalid
-          "
-        />
+        <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
+          <div class="field">
+            <label for="login-email">Correo electrónico</label>
+            <input
+              id="login-email"
+              type="email"
+              formControlName="email"
+              placeholder="nombre@correo.com"
+              autocomplete="username"
+              [attr.aria-invalid]="loginForm.controls.email.touched && loginForm.controls.email.invalid"
+            />
+            @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
+              <small class="field-error">Ingresa tu correo electrónico.</small>
+            } @else if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
+              <small class="field-error">Escribe un correo válido.</small>
+            }
+          </div>
 
-        @if (loginForm.controls.email.touched && loginForm.controls.email.hasError('required')) {
-          <small class="field-error">Ingresa tu correo electrónico.</small>
-        } @else if (loginForm.controls.email.touched && loginForm.controls.email.hasError('email')) {
-          <small class="field-error">Escribe un correo válido.</small>
-        }
-      </div>
+          <div class="field">
+            <label for="login-password">Contraseña</label>
+            <div class="password-input">
+              <input
+                id="login-password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="Escribe tu contraseña"
+                autocomplete="current-password"
+                [attr.aria-invalid]="loginForm.controls.password.touched && loginForm.controls.password.invalid"
+              />
+              <button
+                class="show-password"
+                type="button"
+                (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              >
+                {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            </div>
+            @if (loginForm.controls.password.touched && loginForm.controls.password.hasError('required')) {
+              <small class="field-error">Ingresa tu contraseña.</small>
+            }
+          </div>
 
-      <div class="field">
-        <label for="password">Contraseña</label>
-        <div class="password-input">
-          <input
-            id="password"
-            [type]="showPassword() ? 'text' : 'password'"
-            formControlName="password"
-            placeholder="Escribe tu contraseña"
-            autocomplete="current-password"
-            [attr.aria-invalid]="
-              loginForm.controls.password.touched && loginForm.controls.password.invalid
-            "
-          />
+          <button class="submit-button" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Ingresando…' : 'Iniciar sesión' }}
+          </button>
+        </form>
+
+        <p class="switch-prompt">
+          ¿Aún no tienes cuenta?
+          <button class="text-button" type="button" (click)="openRegistration('ADOPTANTE')">
+            Regístrate
+          </button>
+        </p>
+      } @else {
+        <div class="intro">
+          <p class="eyebrow">Únete a Huellitas</p>
+          <h1 id="register-title">Crear cuenta</h1>
+          <p class="intro-text">Selecciona el tipo de cuenta que deseas registrar.</p>
+        </div>
+
+        <div class="type-picker" aria-label="Tipo de cuenta">
           <button
-            class="show-password"
             type="button"
-            (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            class="type-option"
+            [class.selected]="registrationType() === 'ADOPTANTE'"
+            [attr.aria-pressed]="registrationType() === 'ADOPTANTE'"
+            (click)="registrationType.set('ADOPTANTE'); message.set(''); registrationAttempted.set(false)"
           >
-            {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+            <span aria-hidden="true">♡</span>
+            <span>Adoptante</span>
+          </button>
+          <button
+            type="button"
+            class="type-option"
+            [class.selected]="registrationType() === 'ORGANIZACION'"
+            [attr.aria-pressed]="registrationType() === 'ORGANIZACION'"
+            (click)="registrationType.set('ORGANIZACION'); message.set(''); registrationAttempted.set(false)"
+          >
+            <span aria-hidden="true">⌂</span>
+            <span>Organización</span>
           </button>
         </div>
 
-        @if (loginForm.controls.password.touched && loginForm.controls.password.hasError('required')) {
-          <small class="field-error">Ingresa tu contraseña.</small>
-        }
-      </div>
+        @if (registrationType() === 'ADOPTANTE') {
+          <form class="registration-form" (submit)="submitAdoptante($event)" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="adopter-name">Nombre</label>
+                <input id="adopter-name" [formField]="adoptanteForm.name" autocomplete="given-name" />
+                @if ((registrationAttempted() || adoptanteForm.name().touched()) && adoptanteForm.name().invalid()) {
+                  @for (error of adoptanteForm.name().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="adopter-last-name">Apellidos</label>
+                <input id="adopter-last-name" [formField]="adoptanteForm.lastName" autocomplete="family-name" />
+                @if ((registrationAttempted() || adoptanteForm.lastName().touched()) && adoptanteForm.lastName().invalid()) {
+                  @for (error of adoptanteForm.lastName().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
+            <div class="field">
+              <label for="adopter-email">Correo electrónico</label>
+              <input id="adopter-email" type="email" [formField]="adoptanteForm.email" autocomplete="email" placeholder="nombre@correo.com" />
+              @if ((registrationAttempted() || adoptanteForm.email().touched()) && adoptanteForm.email().invalid()) {
+                @for (error of adoptanteForm.email().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+              }
+            </div>
+            <div class="field">
+              <label for="adopter-password">Contraseña</label>
+              <input id="adopter-password" type="password" [formField]="adoptanteForm.pass" autocomplete="new-password" />
+              @if ((registrationAttempted() || adoptanteForm.pass().touched()) && adoptanteForm.pass().invalid()) {
+                @for (error of adoptanteForm.pass().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+              }
+            </div>
+            <button class="submit-button" type="submit" [disabled]="registering()">
+              {{ registering() ? 'Creando cuenta…' : 'Crear cuenta de adoptante' }}
+            </button>
+          </form>
+        } @else {
+          <form class="registration-form" (submit)="submitOrganizacion($event)" novalidate>
+            <h2 class="form-section-title">Persona responsable</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label for="org-contact-name">Nombre</label>
+                <input id="org-contact-name" [formField]="organizacionForm.name" autocomplete="given-name" />
+                @if ((registrationAttempted() || organizacionForm.name().touched()) && organizacionForm.name().invalid()) {
+                  @for (error of organizacionForm.name().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="org-contact-last-name">Apellidos</label>
+                <input id="org-contact-last-name" [formField]="organizacionForm.lastName" autocomplete="family-name" />
+                @if ((registrationAttempted() || organizacionForm.lastName().touched()) && organizacionForm.lastName().invalid()) {
+                  @for (error of organizacionForm.lastName().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="org-login-email">Correo para iniciar sesión</label>
+                <input id="org-login-email" type="email" [formField]="organizacionForm.email" autocomplete="email" />
+                @if ((registrationAttempted() || organizacionForm.email().touched()) && organizacionForm.email().invalid()) {
+                  @for (error of organizacionForm.email().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="org-password">Contraseña</label>
+                <input id="org-password" type="password" [formField]="organizacionForm.pass" autocomplete="new-password" />
+                @if ((registrationAttempted() || organizacionForm.pass().touched()) && organizacionForm.pass().invalid()) {
+                  @for (error of organizacionForm.pass().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
 
-      <button class="submit-button" type="submit" [disabled]="loading()">
-        {{ loading() ? 'Ingresando…' : 'Iniciar sesión' }}
-      </button>
+            <h2 class="form-section-title">Datos de la organización</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label for="org-name">Nombre de la organización</label>
+                <input id="org-name" [formField]="organizacionForm.nombre" autocomplete="organization" />
+                @if ((registrationAttempted() || organizacionForm.nombre().touched()) && organizacionForm.nombre().invalid()) {
+                  @for (error of organizacionForm.nombre().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="org-type">Tipo</label>
+                <select id="org-type" [formField]="organizacionForm.tipo">
+                  <option value="ALBERGUE">Albergue</option>
+                  <option value="REFUGIO">Refugio</option>
+                  <option value="VETERINARIA">Veterinaria</option>
+                </select>
+                @if ((registrationAttempted() || organizacionForm.tipo().touched()) && organizacionForm.tipo().invalid()) {
+                  @for (error of organizacionForm.tipo().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="org-contact-email">Correo de contacto</label>
+                <input id="org-contact-email" type="email" [formField]="organizacionForm.correo" autocomplete="email" />
+                @if ((registrationAttempted() || organizacionForm.correo().touched()) && organizacionForm.correo().invalid()) {
+                  @for (error of organizacionForm.correo().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="org-phone">Teléfono</label>
+                <input id="org-phone" type="tel" [formField]="organizacionForm.telefono" autocomplete="tel" />
+                @if ((registrationAttempted() || organizacionForm.telefono().touched()) && organizacionForm.telefono().invalid()) {
+                  @for (error of organizacionForm.telefono().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="org-address">Dirección</label>
+                <input id="org-address" [formField]="organizacionForm.direccion" autocomplete="street-address" />
+                @if ((registrationAttempted() || organizacionForm.direccion().touched()) && organizacionForm.direccion().invalid()) {
+                  @for (error of organizacionForm.direccion().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+              <div class="field">
+                <label for="org-district">Distrito</label>
+                <input id="org-district" [formField]="organizacionForm.distrito" autocomplete="address-level3" />
+                @if ((registrationAttempted() || organizacionForm.distrito().touched()) && organizacionForm.distrito().invalid()) {
+                  @for (error of organizacionForm.distrito().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+                }
+              </div>
+            </div>
+            <div class="field">
+              <label for="org-description">Descripción (opcional)</label>
+              <textarea id="org-description" rows="3" [formField]="organizacionForm.descripcion"></textarea>
+              @if ((registrationAttempted() || organizacionForm.descripcion().touched()) && organizacionForm.descripcion().invalid()) {
+                @for (error of organizacionForm.descripcion().errors(); track error.kind) { <small class="field-error">{{ error.message }}</small> }
+              }
+            </div>
+            <p class="pending-note">
+              El perfil de la organización quedará pendiente de activación después del registro.
+            </p>
+            <button class="submit-button" type="submit" [disabled]="registering()">
+              {{ registering() ? 'Enviando solicitud…' : 'Registrar organización' }}
+            </button>
+          </form>
+        }
+
+        <p class="switch-prompt">
+          ¿Ya tienes cuenta?
+          <button class="text-button" type="button" (click)="showLogin()">Inicia sesión</button>
+        </p>
+      }
 
       @if (message()) {
         <p class="form-message" role="status">{{ message() }}</p>
       }
-    </form>
 
-    <footer class="card-footer">
-      <span class="footer-paw" aria-hidden="true">♥</span>
-      <p>Un hogar puede cambiarlo todo.</p>
-    </footer>
-  </section>
+      @if (view() === 'login') {
+        <footer class="card-footer">
+          <span class="footer-paw" aria-hidden="true">♥</span>
+          <p>Un hogar puede cambiarlo todo.</p>
+        </footer>
+      }
+    </section>
 
-  <aside class="welcome-panel">
-    <div class="welcome-content">
-      <p class="eyebrow">Huellitas Conectadas</p>
-      <h2>Cada encuentro puede convertirse en una nueva historia.</h2>
-      <p>
-        Un espacio para acercar a las organizaciones y a las personas que quieren
-        darles un hogar a los animales.
-      </p>
-    </div>
-    <span class="decorative-paw paw-one" aria-hidden="true">🐾</span>
-    <span class="decorative-paw paw-two" aria-hidden="true">🐾</span>
-  </aside>
-</main>
+    <aside class="welcome-panel">
+      <div class="welcome-content">
+        <p class="eyebrow">Huellitas Conectadas</p>
+        <h2>Cada encuentro puede convertirse en una nueva historia.</h2>
+        <p>
+          Un espacio para acercar a las organizaciones y a las personas que quieren
+          darles un hogar a los animales.
+        </p>
+      </div>
+      <span class="decorative-paw paw-one" aria-hidden="true">🐾</span>
+      <span class="decorative-paw paw-two" aria-hidden="true">🐾</span>
+    </aside>
+  </main>
 }
