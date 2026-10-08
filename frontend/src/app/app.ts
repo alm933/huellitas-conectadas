@@ -1,6 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import {
   FormControl,
   FormGroup,
@@ -71,7 +70,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ReactiveFormsModule, FormField],
+  imports: [ReactiveFormsModule, FormField],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
