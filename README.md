@@ -29,7 +29,7 @@ El proyecto tiene un backend REST en Spring Boot y un frontend independiente en 
 - Muestra el correo y rol devueltos al iniciar sesión: `ADMIN`, `ORGANIZACION` o `ADOPTANTE`.
 - Diseño adaptable a pantallas pequeñas.
 
-En Angular 21.2, Signal Forms es una API experimental. Los formularios de registro incluyen validaciones de campos y se conectan a los endpoints existentes de Spring. Aún no hay paneles distintos por rol, catálogo de mascotas ni carga de imágenes.
+En Angular 21.2, Signal Forms es una API experimental. Los formularios de registro incluyen validaciones de campos y se conectan a los endpoints existentes de Spring. El panel disponible por ahora es el de administración; aún faltan vistas para organizaciones y adoptantes, catálogo de mascotas y carga de imágenes.
 
 ## Funcionalidad del backend
 
@@ -149,7 +149,7 @@ Por ahora el token recibido al iniciar sesión se mantiene solo en el estado de 
 ## Próximos pasos
 
 - Aplicar el estado inactivo de la organización para impedir el acceso y la publicación de mascotas.
-- Implementar la activación administrativa de perfiles de organización y aplicar permisos por rol.
+- Aplicar permisos por rol al resto de los endpoints.
 - Vincular las operaciones de mascotas con la organización del usuario autenticado y validar propiedad.
 - Implementar catálogo, solicitudes de adopción y vistas según rol.
 - Configurar Garage para almacenamiento de imágenes y enlazar la carga desde la aplicación.
