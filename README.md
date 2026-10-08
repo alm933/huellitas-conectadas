@@ -21,12 +21,13 @@ El proyecto tiene un backend REST en Spring Boot y un frontend independiente en 
 ### Frontend
 
 - Angular 21.2.
-- Formularios reactivos y cliente HTTP de Angular.
-- Pantalla de inicio de sesión conectada a `https://spring.itechk.us/api/v1/auth/login`.
-- Al iniciar sesión correctamente, muestra el correo y el rol recibido: `ADMIN`, `ORGANIZACION` o `ADOPTANTE`.
+- Login implementado con Reactive Forms y cliente HTTP de Angular.
+- Formularios de registro de adoptantes y organizaciones implementados con Signal Forms.
+- Login conectado a `https://spring.itechk.us/api/v1/auth/login`.
+- Muestra el correo y rol devueltos al iniciar sesión: `ADMIN`, `ORGANIZACION` o `ADOPTANTE`.
 - Diseño adaptable a pantallas pequeñas.
 
-El frontend actual es una primera pantalla funcional de login. Todavía no incluye formularios de registro, paneles diferentes por rol, catálogo de mascotas ni carga de imágenes.
+En Angular 21.2, Signal Forms es una API experimental. Los formularios de registro incluyen validaciones de campos y se conectan a los endpoints existentes de Spring. Aún no hay paneles distintos por rol, catálogo de mascotas ni carga de imágenes.
 
 ## Funcionalidad del backend
 
@@ -38,7 +39,7 @@ El frontend actual es una primera pantalla funcional de login. Todavía no inclu
 | POST | `/api/v1/auth/register/organizacion` | Registra una cuenta y el perfil de una organización. |
 | POST | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT, correo y rol. |
 
-El registro de una organización crea la cuenta con rol `ORGANIZACION` y un perfil inicialmente inactivo (`activo=false`). El endpoint de activación administrativa y la aplicación efectiva de ese estado en los permisos están pendientes.
+El registro de una organización desde Angular solicita los datos de la persona responsable y del perfil institucional. Spring crea la cuenta con rol `ORGANIZACION` y deja el perfil inicialmente inactivo (`activo=false`). El formulario informa que el perfil queda pendiente de activación. El endpoint de activación administrativa y la aplicación efectiva de ese estado en los permisos están pendientes.
 
 ### Organizaciones
 
@@ -122,18 +123,29 @@ npm start -- --host 0.0.0.0
 
 Angular inicia el servidor de desarrollo en el puerto 4200. Abre `http://localhost:4200` en el equipo donde corre el navegador. El servidor de desarrollo es para desarrollo y pruebas, no para producción.
 
-## Flujo de inicio de sesión Angular
+## Flujo de autenticación y registro en Angular
+
+### Iniciar sesión
 
 1. La persona ingresa correo y contraseña.
-2. Angular valida los campos y envía `{ "email": "...", "pass": "..." }` a `POST /api/v1/auth/login`.
-3. Si las credenciales son válidas, muestra el rol y el correo devueltos por Spring.
-4. El botón «Cerrar sesión» limpia el estado de sesión en la aplicación.
+2. El login actual usa Reactive Forms para validar los campos y envía `{ "email": "...", "pass": "..." }` a `POST /api/v1/auth/login`.
+3. Si las credenciales son válidas, la pantalla muestra el rol y correo devueltos por Spring.
+4. «Cerrar sesión» limpia el estado de sesión en la aplicación.
 
-Por ahora el token se mantiene solo en el estado de la pantalla; no se persiste al recargar ni se adjunta automáticamente a solicitudes posteriores.
+### Crear una cuenta
+
+Los formularios de registro usan Signal Forms y permiten elegir uno de estos tipos:
+
+- **Adoptante:** nombre, apellidos, correo y contraseña; se envía a `POST /api/v1/auth/register`.
+- **Organización:** datos de acceso y perfil (nombre institucional, tipo, correo de contacto, teléfono, dirección, distrito y descripción opcional); se envía a `POST /api/v1/auth/register/organizacion`.
+
+Al completar el registro, Angular vuelve al login y muestra un mensaje de resultado. En el registro de organización aclara que su perfil queda pendiente de activación.
+
+Por ahora el token recibido al iniciar sesión se mantiene solo en el estado de la pantalla; no se persiste al recargar ni se adjunta automáticamente a solicitudes posteriores.
 
 ## Próximos pasos
 
-- Crear en Angular el formulario de registro para adoptantes y organizaciones.
+- Definir activación administrativa de organizaciones y aplicar permisos por rol.
 - Implementar la activación administrativa de perfiles de organización y aplicar permisos por rol.
 - Vincular las operaciones de mascotas con la organización del usuario autenticado y validar propiedad.
 - Implementar catálogo, solicitudes de adopción y vistas según rol.
