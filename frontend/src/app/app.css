@@ -434,3 +434,15 @@ textarea[aria-invalid="true"] {
     font-size: 13px;
   }
 }
+
+
+.page.registration-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.page.registration-page .register-card {
+  width: min(100% - 48px, 760px);
+  max-height: none;
+  margin: 0 auto;
+  overflow: visible;
+}
