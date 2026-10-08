@@ -23,6 +23,8 @@ El proyecto tiene un backend REST en Spring Boot y un frontend independiente en 
 - Angular 21.2.
 - Login implementado con Reactive Forms y cliente HTTP de Angular.
 - Formularios de registro de adoptantes y organizaciones implementados con Signal Forms.
+- Panel de administración para consultar solicitudes pendientes y organizaciones activas.
+- Botones para activar o desactivar perfiles, conectados al endpoint protegido de Spring.
 - Login conectado a `https://spring.itechk.us/api/v1/auth/login`.
 - Muestra el correo y rol devueltos al iniciar sesión: `ADMIN`, `ORGANIZACION` o `ADOPTANTE`.
 - Diseño adaptable a pantallas pequeñas.
@@ -38,8 +40,9 @@ En Angular 21.2, Signal Forms es una API experimental. Los formularios de regist
 | POST | `/api/v1/auth/register` | Registra una cuenta de adoptante. |
 | POST | `/api/v1/auth/register/organizacion` | Registra una cuenta y el perfil de una organización. |
 | POST | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT, correo y rol. |
+| PATCH | `/api/v1/organizaciones/{id}/activo` | Activa o desactiva un perfil de organización; requiere rol `ADMIN`. |
 
-El registro de una organización desde Angular solicita los datos de la persona responsable y del perfil institucional. Spring crea la cuenta con rol `ORGANIZACION` y deja el perfil inicialmente inactivo (`activo=false`). El formulario informa que el perfil queda pendiente de activación. El endpoint de activación administrativa y la aplicación efectiva de ese estado en los permisos están pendientes.
+El registro de una organización desde Angular solicita los datos de la persona responsable y del perfil institucional. Spring crea la cuenta con rol `ORGANIZACION` y deja el perfil inicialmente inactivo (`activo=false`). El formulario informa que el perfil queda pendiente de activación. El administrador puede cambiar el estado con `PATCH /api/v1/organizaciones/{id}/activo`, enviando `{ "activo": true }` para activar o `{ "activo": false }` para desactivar. El endpoint requiere un JWT con autoridad `ADMIN`. La aplicación del estado inactivo en el acceso y en las operaciones de mascotas sigue pendiente.
 
 ### Organizaciones
 
@@ -65,7 +68,7 @@ Cada animal está asociado a una organización. La asociación y autorización d
 
 ### Seguridad actual
 
-Los endpoints `/api/v1/auth/**` permiten registro e inicio de sesión sin token. El resto de las rutas requiere autenticación JWT. La configuración aún no aplica permisos distintos por rol; por ello, el rol que muestra Angular sirve actualmente para confirmar la respuesta del login, no para proteger vistas o acciones.
+Los endpoints `/api/v1/auth/**` permiten registro e inicio de sesión sin token. El resto de las rutas requiere autenticación JWT. El endpoint `PATCH /api/v1/organizaciones/{id}/activo` exige además el rol `ADMIN`. El panel Angular solo se muestra para una sesión cuyo rol es `ADMIN`. El resto de permisos por rol y el bloqueo operativo de organizaciones inactivas aún requieren implementación.
 
 El CORS del backend permite el origen de desarrollo `http://localhost:4200`. Para usar el frontend desde otro origen habrá que agregarlo explícitamente a la configuración.
 
@@ -141,11 +144,11 @@ Los formularios de registro usan Signal Forms y permiten elegir uno de estos tip
 
 Al completar el registro, Angular vuelve al login y muestra un mensaje de resultado. En el registro de organización aclara que su perfil queda pendiente de activación.
 
-Por ahora el token recibido al iniciar sesión se mantiene solo en el estado de la pantalla; no se persiste al recargar ni se adjunta automáticamente a solicitudes posteriores.
+Por ahora el token recibido al iniciar sesión se mantiene solo en el estado de la pantalla; no se persiste al recargar. El panel de administración sí lo adjunta a las consultas y cambios de estado de organizaciones.
 
 ## Próximos pasos
 
-- Definir activación administrativa de organizaciones y aplicar permisos por rol.
+- Aplicar el estado inactivo de la organización para impedir el acceso y la publicación de mascotas.
 - Implementar la activación administrativa de perfiles de organización y aplicar permisos por rol.
 - Vincular las operaciones de mascotas con la organización del usuario autenticado y validar propiedad.
 - Implementar catálogo, solicitudes de adopción y vistas según rol.
