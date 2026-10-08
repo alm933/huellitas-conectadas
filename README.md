@@ -40,7 +40,6 @@ En Angular 21.2, Signal Forms es una API experimental. Los formularios de regist
 | POST | `/api/v1/auth/register` | Registra una cuenta de adoptante. |
 | POST | `/api/v1/auth/register/organizacion` | Registra una cuenta y el perfil de una organización. |
 | POST | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT, correo y rol. |
-| PATCH | `/api/v1/organizaciones/{id}/activo` | Activa o desactiva un perfil de organización; requiere rol `ADMIN`. |
 
 El registro de una organización desde Angular solicita los datos de la persona responsable y del perfil institucional. Spring crea la cuenta con rol `ORGANIZACION` y deja el perfil inicialmente inactivo (`activo=false`). El formulario informa que el perfil queda pendiente de activación. El administrador puede cambiar el estado con `PATCH /api/v1/organizaciones/{id}/activo`, enviando `{ "activo": true }` para activar o `{ "activo": false }` para desactivar. El endpoint requiere un JWT con autoridad `ADMIN`. La aplicación del estado inactivo en el acceso y en las operaciones de mascotas sigue pendiente.
 
@@ -53,6 +52,7 @@ El registro de una organización desde Angular solicita los datos de la persona 
 | POST | `/api/v1/organizaciones` | Crea una organización. |
 | PUT | `/api/v1/organizaciones/{id}` | Actualiza una organización. |
 | DELETE | `/api/v1/organizaciones/{id}` | Elimina una organización. |
+| PATCH | `/api/v1/organizaciones/{id}/activo` | Activa o desactiva un perfil; requiere rol `ADMIN`. |
 
 ### Animales
 
