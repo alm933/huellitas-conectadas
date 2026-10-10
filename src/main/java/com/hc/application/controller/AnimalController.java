@@ -17,7 +17,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.UsuarioEntity;
+import com.hc.application.service.AnimalPublicacionService;
 import com.hc.application.service.AnimalService;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestPart;
+import com.hc.application.dto.animal.AnimalPublicacionResponse;
+
+
 
 import jakarta.validation.Valid;
 
@@ -25,11 +33,18 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/animales")
 public class AnimalController {
 
+    private final AnimalPublicacionService animalPublicacionService;
     private final AnimalService animalService;
-
-    public AnimalController(AnimalService animalService) {
+    
+    public AnimalController(
+        AnimalService animalService,
+        AnimalPublicacionService animalPublicacionService) 
+    {
         this.animalService = animalService;
+        this.animalPublicacionService = animalPublicacionService;
     }
+
+
 
     @GetMapping
     public ResponseEntity<List<AnimalResponse>> listar() {
@@ -67,4 +82,19 @@ public class AnimalController {
         animalService.eliminar(id, usuarioActual);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping(
+        path = "/publicar",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AnimalPublicacionResponse> publicar(
+        @Valid @RequestPart("animal") AnimalRequest request,
+        @RequestPart("fotos") List<MultipartFile> fotos,
+        @AuthenticationPrincipal UsuarioEntity usuarioActual) {
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(animalPublicacionService.publicar(
+                    request, fotos, usuarioActual));
+    }
+
 }
