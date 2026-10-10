@@ -3,6 +3,7 @@ package com.hc.application.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,20 +13,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.hc.application.dto.animal.AnimalPublicacionResponse;
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.UsuarioEntity;
 import com.hc.application.service.AnimalPublicacionService;
 import com.hc.application.service.AnimalService;
-
-import org.springframework.http.MediaType;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RequestPart;
-import com.hc.application.dto.animal.AnimalPublicacionResponse;
-
-
 
 import jakarta.validation.Valid;
 
@@ -35,16 +32,13 @@ public class AnimalController {
 
     private final AnimalPublicacionService animalPublicacionService;
     private final AnimalService animalService;
-    
+
     public AnimalController(
-        AnimalService animalService,
-        AnimalPublicacionService animalPublicacionService) 
-    {
+            AnimalService animalService,
+            AnimalPublicacionService animalPublicacionService) {
         this.animalService = animalService;
         this.animalPublicacionService = animalPublicacionService;
     }
-
-
 
     @GetMapping
     public ResponseEntity<List<AnimalResponse>> listar() {
@@ -52,18 +46,8 @@ public class AnimalController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AnimalResponse> buscarPorId(
-            @PathVariable Long id) {
+    public ResponseEntity<AnimalResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(animalService.buscarPorId(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<AnimalResponse> guardar(
-            @Valid @RequestBody AnimalRequest request,
-            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(animalService.guardar(request, usuarioActual));
     }
 
     @PutMapping("/{id}")
@@ -84,17 +68,15 @@ public class AnimalController {
     }
 
     @PostMapping(
-        path = "/publicar",
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+            path = "/publicar",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AnimalPublicacionResponse> publicar(
-        @Valid @RequestPart("animal") AnimalRequest request,
-        @RequestPart("fotos") List<MultipartFile> fotos,
-        @AuthenticationPrincipal UsuarioEntity usuarioActual) {
-
-    return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(animalPublicacionService.publicar(
-                    request, fotos, usuarioActual));
+            @Valid @RequestPart("animal") AnimalRequest request,
+            @RequestPart("fotos") List<MultipartFile> fotos,
+            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(animalPublicacionService.publicar(
+                        request, fotos, usuarioActual));
     }
-
 }
