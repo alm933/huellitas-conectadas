@@ -63,6 +63,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH,
                                 "/api/v1/organizaciones/*/activo")
                         .hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/animales")
+                        .denyAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/animales/**")
                         .hasAuthority("ORGANIZACION")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/animales/**")
