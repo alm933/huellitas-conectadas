@@ -12,22 +12,23 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter 
-@Setter 
-@NoArgsConstructor 
+@Getter
+@Setter
+@NoArgsConstructor
 public class AnimalRequest {
 
-    @NotBlank (message = "El nombre es obligatorio")
+    @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 80)
     private String nombre;
 
     @NotBlank(message = "La especie es obligatoria")
+    @Size(max = 50)
     private String especie;
 
     @Size(max = 80)
     private String raza;
 
-    @NotNull (message = "La edad es obligatoria")
+    @NotNull(message = "La edad es obligatoria")
     @Min(value = 0, message = "La edad no puede ser negativa")
     private Integer edadMeses;
 
@@ -40,11 +41,5 @@ public class AnimalRequest {
     @NotBlank(message = "La historia es obligatoria")
     private String descripcion;
 
-    private String fotoUrl;
-
     private EstadoAnimal estado;
-
-    @NotNull(message = "La organización es obligatoria")
-    private Long organizacionId;
-
 }

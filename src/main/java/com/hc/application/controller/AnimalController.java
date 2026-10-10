@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
+import com.hc.application.entity.UsuarioEntity;
 import com.hc.application.service.AnimalService;
 
 import jakarta.validation.Valid;
@@ -37,36 +39,32 @@ public class AnimalController {
     @GetMapping("/{id}")
     public ResponseEntity<AnimalResponse> buscarPorId(
             @PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                animalService.buscarPorId(id)
-        );
+        return ResponseEntity.ok(animalService.buscarPorId(id));
     }
 
     @PostMapping
     public ResponseEntity<AnimalResponse> guardar(
-            @Valid @RequestBody AnimalRequest request) {
-
+            @Valid @RequestBody AnimalRequest request,
+            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(animalService.guardar(request));
+                .body(animalService.guardar(request, usuarioActual));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<AnimalResponse> actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody AnimalRequest request) {
-
+            @Valid @RequestBody AnimalRequest request,
+            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
         return ResponseEntity.ok(
-                animalService.actualizar(id, request)
-        );
+                animalService.actualizar(id, request, usuarioActual));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-
-        animalService.eliminar(id);
-
+    public ResponseEntity<Void> eliminar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
+        animalService.eliminar(id, usuarioActual);
         return ResponseEntity.noContent().build();
     }
 }
