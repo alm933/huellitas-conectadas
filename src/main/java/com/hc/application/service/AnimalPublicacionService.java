@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,16 +35,20 @@ public class AnimalPublicacionService {
     private final AnimalFotoRepository fotoRepository;
     private final OrganizacionRepository organizacionRepository;
     private final GarageStorageService garageStorageService;
+    private final String apiPublicUrl;
 
     public AnimalPublicacionService(
             AnimalRepository animalRepository,
             AnimalFotoRepository fotoRepository,
             OrganizacionRepository organizacionRepository,
-            GarageStorageService garageStorageService) {
+            GarageStorageService garageStorageService,
+            @Value("${app.api.public-url:https://spring.itechk.us}")
+            String apiPublicUrl) {
         this.animalRepository = animalRepository;
         this.fotoRepository = fotoRepository;
         this.organizacionRepository = organizacionRepository;
         this.garageStorageService = garageStorageService;
+        this.apiPublicUrl = apiPublicUrl.replaceAll("/+$", "");
     }
 
     @Transactional
@@ -116,7 +121,7 @@ public class AnimalPublicacionService {
 
             fotos = fotoRepository.saveAll(fotos);
 
-            animal.setFotoUrl("/api/v1/fotos/" + fotos.get(0).getId());
+            animal.setFotoUrl(urlFoto(fotos.get(0).getId()));
             animalRepository.save(animal);
 
             AnimalResponse animalResponse = new AnimalResponse(
@@ -137,7 +142,7 @@ public class AnimalPublicacionService {
             List<AnimalFotoResponse> fotosResponse = fotos.stream()
                     .map(foto -> new AnimalFotoResponse(
                             foto.getId(),
-                            "/api/v1/fotos/" + foto.getId(),
+                            urlFoto(foto.getId()),
                             foto.getContentType()))
                     .toList();
 
@@ -151,6 +156,10 @@ public class AnimalPublicacionService {
             limpiarGarage(clavesSubidas);
             throw e;
         }
+    }
+
+    private String urlFoto(Long id) {
+        return apiPublicUrl + "/api/v1/fotos/" + id;
     }
 
     private String validarFoto(MultipartFile archivo) {
