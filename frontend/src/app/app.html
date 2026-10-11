@@ -129,6 +129,11 @@
         </section>
       }
     </main>
+  } @else if (currentSession.role === 'ORGANIZACION') {
+    <app-publicar-mascota
+      [token]="currentSession.token"
+      (logoutRequested)="logout()"
+    />
   } @else {
     <main class="page">
       <section class="login-card role-card" aria-labelledby="role-title">
