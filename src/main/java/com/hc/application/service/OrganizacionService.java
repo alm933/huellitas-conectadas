@@ -75,6 +75,16 @@ public class OrganizacionService {
     }
 
     @Transactional
+    public OrganizacionResponse actualizarEstado(Long id, Boolean activo) {
+        OrganizacionEntity organizacion = obtenerEntidad(id);
+        organizacion.setActivo(activo);
+
+        return convertirAResponse(
+                organizacionRepository.save(organizacion)
+        );
+    }
+
+    @Transactional
     public void eliminar(Long id) {
         OrganizacionEntity organizacion = obtenerEntidad(id);
         organizacionRepository.delete(organizacion);

@@ -2,13 +2,16 @@ package com.hc.application.service;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.AnimalEntity;
 import com.hc.application.entity.OrganizacionEntity;
+import com.hc.application.entity.UsuarioEntity;
 import com.hc.application.exception.RecursoNoEncontradoException;
 import com.hc.application.repository.AnimalRepository;
 import com.hc.application.repository.OrganizacionRepository;
@@ -22,7 +25,6 @@ public class AnimalService {
     public AnimalService(
             AnimalRepository animalRepository,
             OrganizacionRepository organizacionRepository) {
-
         this.animalRepository = animalRepository;
         this.organizacionRepository = organizacionRepository;
     }
@@ -37,58 +39,31 @@ public class AnimalService {
 
     @Transactional(readOnly = true)
     public AnimalResponse buscarPorId(Long id) {
-        AnimalEntity animal = obtenerEntidad(id);
-        return convertirAResponse(animal);
+        return convertirAResponse(obtenerEntidad(id));
     }
 
     @Transactional
-    public AnimalResponse guardar(AnimalRequest request) {
-
-        OrganizacionEntity organizacion = organizacionRepository
-                .findById(request.getOrganizacionId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "No se encontró la organización con id: "
-                                + request.getOrganizacionId()));
+    public AnimalResponse guardar(AnimalRequest request, UsuarioEntity usuarioActual) {
+        OrganizacionEntity organizacion = obtenerOrganizacionActiva(usuarioActual);
 
         AnimalEntity animal = new AnimalEntity();
-
-        animal.setNombre(request.getNombre());
-        animal.setEspecie(request.getEspecie());
-        animal.setRaza(request.getRaza());
-        animal.setEdadMeses(request.getEdadMeses());
-        animal.setSexo(request.getSexo());
-        animal.setTamano(request.getTamanio());
-        animal.setDescripcion(request.getDescripcion());
-        animal.setFotoUrl(request.getFotoUrl());
-        animal.setEstado(request.getEstado());
+        aplicarDatos(animal, request);
         animal.setOrganizacion(organizacion);
 
-        AnimalEntity animalGuardado = animalRepository.save(animal);
-
-        return convertirAResponse(animalGuardado);
+        return convertirAResponse(animalRepository.save(animal));
     }
 
     @Transactional
-    public AnimalResponse actualizar(Long id, AnimalRequest request) {
-
+    public AnimalResponse actualizar(
+            Long id,
+            AnimalRequest request,
+            UsuarioEntity usuarioActual) {
+        OrganizacionEntity organizacionActual =
+                obtenerOrganizacionActiva(usuarioActual);
         AnimalEntity animal = obtenerEntidad(id);
+        validarPropiedad(animal, organizacionActual);
 
-        OrganizacionEntity organizacion = organizacionRepository
-                .findById(request.getOrganizacionId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "No se encontró la organización con id: "
-                                + request.getOrganizacionId()));
-
-        animal.setNombre(request.getNombre());
-        animal.setEspecie(request.getEspecie());
-        animal.setRaza(request.getRaza());
-        animal.setEdadMeses(request.getEdadMeses());
-        animal.setSexo(request.getSexo());
-        animal.setTamano(request.getTamanio());
-        animal.setDescripcion(request.getDescripcion());
-        animal.setFotoUrl(request.getFotoUrl());
-        animal.setOrganizacion(organizacion);
-
+        aplicarDatos(animal, request);
         if (request.getEstado() != null) {
             animal.setEstado(request.getEstado());
         }
@@ -97,9 +72,56 @@ public class AnimalService {
     }
 
     @Transactional
-    public void eliminar(Long id) {
+    public void eliminar(Long id, UsuarioEntity usuarioActual) {
+        OrganizacionEntity organizacionActual =
+                obtenerOrganizacionActiva(usuarioActual);
         AnimalEntity animal = obtenerEntidad(id);
+        validarPropiedad(animal, organizacionActual);
         animalRepository.delete(animal);
+    }
+
+    private void aplicarDatos(AnimalEntity animal, AnimalRequest request) {
+        animal.setNombre(request.getNombre());
+        animal.setEspecie(request.getEspecie());
+        animal.setRaza(request.getRaza());
+        animal.setEdadMeses(request.getEdadMeses());
+        animal.setSexo(request.getSexo());
+        animal.setTamano(request.getTamanio());
+        animal.setDescripcion(request.getDescripcion());
+    }
+
+    private OrganizacionEntity obtenerOrganizacionActiva(
+            UsuarioEntity usuarioActual) {
+        if (usuarioActual == null || usuarioActual.getId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Debes iniciar sesión.");
+        }
+
+        OrganizacionEntity organizacion = organizacionRepository
+                .findByUsuario_Id(usuarioActual.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "La cuenta no está vinculada a una organización."));
+
+        if (!Boolean.TRUE.equals(organizacion.getActivo())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "La organización debe estar activa para gestionar mascotas.");
+        }
+
+        return organizacion;
+    }
+
+    private void validarPropiedad(
+            AnimalEntity animal,
+            OrganizacionEntity organizacionActual) {
+        if (animal.getOrganizacion() == null
+                || !animal.getOrganizacion().getId()
+                        .equals(organizacionActual.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puedes modificar mascotas de otra organización.");
+        }
     }
 
     private AnimalEntity obtenerEntidad(Long id) {
@@ -109,7 +131,6 @@ public class AnimalService {
     }
 
     private AnimalResponse convertirAResponse(AnimalEntity animal) {
-
         return new AnimalResponse(
                 animal.getId(),
                 animal.getNombre(),
@@ -123,7 +144,6 @@ public class AnimalService {
                 animal.getEstado(),
                 animal.getFechaPublicacion(),
                 animal.getOrganizacion().getId(),
-                animal.getOrganizacion().getNombre()
-        );
+                animal.getOrganizacion().getNombre());
     }
 }

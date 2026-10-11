@@ -1,0 +1,117 @@
+<main class="organization-page">
+  <header class="organization-header">
+    <div>
+      <p class="eyebrow">Huellitas Conectadas</p>
+      <h1>Publicar una mascota</h1>
+      <p class="subtitle">Completa su información y adjunta entre 2 y 8 fotos.</p>
+    </div>
+    <button class="logout-button" type="button" (click)="requestLogout()">Cerrar sesión</button>
+  </header>
+
+  <p class="activation-note">
+    La organización debe estar activada por una persona administradora para publicar.
+    Cada foto debe ser JPEG, PNG o WebP y pesar hasta 5 MB.
+  </p>
+
+  @if (success(); as result) {
+    <div class="feedback success" role="status">
+      <strong>{{ result.animal.nombre }} fue publicada.</strong>
+      <span>Se guardaron {{ result.fotos.length }} fotos. ID de mascota: {{ result.animal.id }}.</span>
+    </div>
+  }
+  @if (errorMessage()) {
+    <p class="feedback error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="publish()" novalidate>
+    <section class="form-card" aria-labelledby="animal-data-title">
+      <h2 id="animal-data-title">Información de la mascota</h2>
+      <div class="fields-grid">
+        <div class="field">
+          <label for="pet-name">Nombre</label>
+          <input id="pet-name" formControlName="nombre" maxlength="80" />
+          @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+            <small class="field-error">Ingresa un nombre de hasta 80 caracteres.</small>
+          }
+        </div>
+        <div class="field">
+          <label for="pet-species">Especie</label>
+          <select id="pet-species" formControlName="especie">
+            <option value="Perro">Perro</option>
+            <option value="Gato">Gato</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pet-breed">Raza (opcional)</label>
+          <input id="pet-breed" formControlName="raza" maxlength="80" />
+        </div>
+        <div class="field">
+          <label for="pet-age">Edad en meses</label>
+          <input id="pet-age" type="number" min="0" formControlName="edadMeses" />
+          @if (form.controls.edadMeses.touched && form.controls.edadMeses.invalid) {
+            <small class="field-error">Ingresa una edad igual o mayor que cero.</small>
+          }
+        </div>
+        <div class="field">
+          <label for="pet-sex">Sexo</label>
+          <select id="pet-sex" formControlName="sexo">
+            <option value="">Selecciona</option>
+            <option value="HEMBRA">Hembra</option>
+            <option value="MACHO">Macho</option>
+            <option value="DESCONOCIDO">No determinado</option>
+          </select>
+          @if (form.controls.sexo.touched && form.controls.sexo.invalid) {
+            <small class="field-error">Selecciona el sexo.</small>
+          }
+        </div>
+        <div class="field">
+          <label for="pet-size">Tamaño</label>
+          <select id="pet-size" formControlName="tamanio">
+            <option value="">Selecciona</option>
+            <option value="PEQUENO">Pequeño</option>
+            <option value="MEDIANO">Mediano</option>
+            <option value="GRANDE">Grande</option>
+          </select>
+          @if (form.controls.tamanio.touched && form.controls.tamanio.invalid) {
+            <small class="field-error">Selecciona el tamaño.</small>
+          }
+        </div>
+      </div>
+      <div class="field">
+        <label for="pet-story">Descripción e historia</label>
+        <textarea id="pet-story" rows="5" formControlName="descripcion" placeholder="Cuenta su historia, personalidad y qué hogar necesita."></textarea>
+        @if (form.controls.descripcion.touched && form.controls.descripcion.invalid) {
+          <small class="field-error">Escribe una descripción.</small>
+        }
+      </div>
+    </section>
+
+    <section class="form-card" aria-labelledby="pet-photos-title">
+      <h2 id="pet-photos-title">Fotos</h2>
+      <p class="photo-help">Seleccionadas: {{ photos().length }} de 8 (mínimo 2).</p>
+      <label class="file-picker">
+        <span>Elegir fotos</span>
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="onFilesSelected($event)" />
+      </label>
+
+      @if (photos().length > 0) {
+        <div class="photo-grid">
+          @for (photo of photos(); track photo.url; let index = $index) {
+            <figure class="photo-preview">
+              <img [src]="photo.url" [alt]="'Vista previa ' + (index + 1)" />
+              <figcaption>
+                <span>{{ photo.file.name }}</span>
+                <button type="button" (click)="removePhoto(index)" [attr.aria-label]="'Quitar ' + photo.file.name">Quitar</button>
+              </figcaption>
+            </figure>
+          }
+        </div>
+      }
+    </section>
+
+    <button class="publish-button" type="submit" [disabled]="uploading()">
+      {{ uploading() ? 'Subiendo fotos y publicando…' : 'Publicar mascota' }}
+    </button>
+  </form>
+</main>

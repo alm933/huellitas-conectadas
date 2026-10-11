@@ -11,6 +11,8 @@ import com.hc.application.dto.auth.UsuarioResponse;
 import com.hc.application.service.AuthService;
 import com.hc.application.service.UsuarioService;
 
+import com.hc.application.dto.auth.RegistroOrganizacionRequest;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -40,4 +42,14 @@ public class AuthController {
                 authService.login(request)
         );
     }
+
+    @PostMapping("/register/organizacion")
+public ResponseEntity<UsuarioResponse> registrarOrganizacion(
+        @Valid @RequestBody RegistroOrganizacionRequest request) {
+
+    return ResponseEntity
+            .status(201)
+            .body(usuarioService.registrarOrganizacion(request));
+}
+
 }
