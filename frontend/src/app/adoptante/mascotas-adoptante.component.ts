@@ -40,11 +40,11 @@ const API_URL = 'https://spring.itechk.us/api/v1';
               <h1>{{ animal.nombre }}</h1>
               <p class="organization"><span aria-hidden="true">⌖</span> {{ animal.organizacionNombre || 'Organización de adopción' }}</p>
             </div>
-            <span class="ready-badge">¡Lista para hogar!</span>
+            <span class="ready-badge">Busca un hogar</span>
           </div>
           <div class="stats">
             <article class="stat age"><span aria-hidden="true">♙</span><strong>Edad</strong><small>{{ formatAge(animal.edadMeses) }}</small></article>
-            <article class="stat sex"><span aria-hidden="true">{{ animal.sexo === 'HEMBRA' ? '♀' : '♂' }}</span><strong>Sexo</strong><small>{{ label(animal.sexo) }}</small></article>
+            <article class="stat sex"><span aria-hidden="true">{{ animal.sexo === 'HEMBRA' ? '♀' : animal.sexo === 'MACHO' ? '♂' : '•' }}</span><strong>Sexo</strong><small>{{ label(animal.sexo) }}</small></article>
             <article class="stat size"><span aria-hidden="true">▤</span><strong>Tamaño</strong><small>{{ label(animal.tamanio) }}</small></article>
           </div>
           <section class="story">
@@ -75,7 +75,9 @@ const API_URL = 'https://spring.itechk.us/api/v1';
         }
         @if (loading() && animals().length === 0) {
           <p class="catalog-state">Cargando mascotas…</p>
-        } @else if (!error() && animals().length === 0) {
+        } @else if (error()) {
+          <p class="catalog-state">No se pudieron mostrar las mascotas.</p>
+        } @else if (animals().length === 0) {
           <section class="catalog-state empty">
             <span aria-hidden="true">🐾</span>
             <h2>Pronto habrá nuevas historias</h2>
