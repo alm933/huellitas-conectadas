@@ -2,75 +2,124 @@
 
 Plataforma web académica para conectar a personas interesadas en adoptar animales con albergues, refugios y veterinarias.
 
-## Estado del proyecto
+## Estado actual
 
-El proyecto tiene un backend REST en Spring Boot y un frontend independiente en Angular, dentro de la carpeta `frontend/`.
+El repositorio contiene un backend REST con Spring Boot y un frontend Angular en `frontend/`. La rama de trabajo actual reúne el flujo básico para registrar organizaciones y adoptantes, moderar organizaciones, publicar mascotas con fotos y permitir que adoptantes consulten las publicaciones.
+
+### Funcionalidad implementada
+
+- Registro e inicio de sesión con JWT y control de acceso mediante Spring Security.
+- Panel de administración para consultar organizaciones y activar o desactivar sus perfiles.
+- Vista de organización para publicar una mascota con entre 2 y 8 fotos.
+- Almacenamiento de fotos en Garage mediante su API compatible con S3; el backend conserva las claves y metadatos asociados.
+- Catálogo para adoptantes que muestra mascotas con estado `DISPONIBLE`.
+- Vista de detalle con foto principal, edad, sexo, tamaño, historia y organización responsable.
+- Diseño adaptable a pantallas de celular y escritorio.
+- Validación de propiedad para que una organización gestione únicamente sus mascotas.
+
+### Pendiente
+
+- Solicitudes de adopción y su seguimiento.
+- Persistencia de favoritos del adoptante; el corazón actual es solo visual y se reinicia al salir de la vista.
+- Galería de fotos en la vista de detalle; por ahora se muestra la foto principal.
+- Despliegue de producción del frontend. Angular se ejecuta actualmente con su servidor de desarrollo.
+- Pruebas automatizadas de los flujos principales y documentación final de despliegue.
+
+## Tecnologías
 
 ### Backend
 
-- Spring Boot 4.1.1 y Java 25.
+- Java 25 y Spring Boot 4.1.1.
 - Maven Wrapper.
-- MySQL 8 y Spring Data JPA.
-- API REST organizada en controladores, servicios, repositorios y DTOs.
-- Validaciones con Jakarta Validation.
-- Entidades de usuarios, organizaciones y animales.
-- Contraseñas protegidas con BCrypt.
-- Autenticación con JWT y Spring Security.
-- Registro de cuentas de adoptantes y organizaciones.
+- MySQL 8, Spring Data JPA e Hibernate.
+- Spring Security, JWT y BCrypt.
+- Jakarta Validation.
+- AWS SDK para Java, conectado a Garage con protocolo S3.
 
 ### Frontend
 
-- Angular 21.2.
-- Login implementado con Reactive Forms y cliente HTTP de Angular.
-- Formularios de registro de adoptantes y organizaciones implementados con Signal Forms.
-- Panel de administración para consultar solicitudes pendientes y organizaciones activas.
-- Botones para activar o desactivar perfiles, conectados al endpoint protegido de Spring.
-- Login conectado a `https://spring.itechk.us/api/v1/auth/login`.
-- Muestra el correo y rol devueltos al iniciar sesión: `ADMIN`, `ORGANIZACION` o `ADOPTANTE`.
-- Diseño adaptable a pantallas pequeñas.
+- Angular 21.2 y TypeScript.
+- Reactive Forms para inicio de sesión y publicación de mascotas.
+- Signal Forms para los formularios de registro.
+- Angular HttpClient para consumir la API.
+- CSS adaptable para catálogo y detalle.
 
-En Angular 21.2, Signal Forms es una API experimental. Los formularios de registro incluyen validaciones de campos y se conectan a los endpoints existentes de Spring. El panel disponible por ahora es el de administración; aún faltan vistas para organizaciones y adoptantes, catálogo de mascotas y carga de imágenes.
+## Endpoints principales
 
-## Funcionalidad del backend
+Todas las rutas usan el prefijo `/api/v1`, salvo indicación contraria. Las rutas protegidas requieren el encabezado:
 
-### Autenticación y registro
+```http
+Authorization: Bearer <JWT>
+```
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| POST | `/api/v1/auth/register` | Registra una cuenta de adoptante. |
-| POST | `/api/v1/auth/register/organizacion` | Registra una cuenta y el perfil de una organización. |
-| POST | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT, correo y rol. |
+### Autenticación
 
-El registro de una organización desde Angular solicita los datos de la persona responsable y del perfil institucional. Spring crea la cuenta con rol `ORGANIZACION` y deja el perfil inicialmente inactivo (`activo=false`). El formulario informa que el perfil queda pendiente de activación. El administrador puede cambiar el estado con `PATCH /api/v1/organizaciones/{id}/activo`, enviando `{ "activo": true }` para activar o `{ "activo": false }` para desactivar. El endpoint requiere un JWT con autoridad `ADMIN`. La aplicación del estado inactivo en el acceso y en las operaciones de mascotas sigue pendiente.
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/auth/register` | Público | Registra una cuenta de adoptante. |
+| POST | `/auth/register/organizacion` | Público | Registra una cuenta y el perfil de una organización. |
+| POST | `/auth/login` | Público | Inicia sesión y devuelve el JWT, correo y rol. |
 
 ### Organizaciones
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/v1/organizaciones` | Lista organizaciones. |
-| GET | `/api/v1/organizaciones/{id}` | Consulta una organización por ID. |
-| POST | `/api/v1/organizaciones` | Crea una organización. |
-| PUT | `/api/v1/organizaciones/{id}` | Actualiza una organización. |
-| DELETE | `/api/v1/organizaciones/{id}` | Elimina una organización. |
-| PATCH | `/api/v1/organizaciones/{id}/activo` | Activa o desactiva un perfil; requiere rol `ADMIN`. |
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/organizaciones` | Autenticado | Lista organizaciones. |
+| GET | `/organizaciones/{id}` | Autenticado | Consulta una organización. |
+| POST | `/organizaciones` | Autenticado | Crea un perfil de organización. |
+| PUT | `/organizaciones/{id}` | Autenticado | Actualiza un perfil. |
+| DELETE | `/organizaciones/{id}` | Autenticado | Elimina un perfil. |
+| PATCH | `/organizaciones/{id}/activo` | ADMIN | Activa o desactiva un perfil con `{ "activo": true }` o `{ "activo": false }`. |
 
-### Animales
+El registro desde Angular crea el perfil inicialmente inactivo. La organización debe ser activada por un administrador antes de publicar o gestionar mascotas.
 
-| Método | Endpoint | Descripción |
-|---|---|---|
-| GET | `/api/v1/animales` | Lista animales. |
-| GET | `/api/v1/animales/{id}` | Consulta un animal por ID. |
-| POST | `/api/v1/animales` | Registra un animal. |
-| PUT | `/api/v1/animales/{id}` | Actualiza un animal. |
-| DELETE | `/api/v1/animales/{id}` | Elimina un animal. |
+### Mascotas y fotos
 
-Cada animal está asociado a una organización. La asociación y autorización de escritura por organización autenticada aún requieren endurecimiento: actualmente las operaciones de animales no verifican que la organización propietaria corresponda al usuario que presenta el token.
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/animales` | Autenticado | Lista animales. El catálogo Angular filtra los que tienen estado `DISPONIBLE`. |
+| GET | `/animales/{id}` | Autenticado | Consulta una mascota. |
+| POST | `/animales/publicar` | ORGANIZACION | Publica una mascota y sube sus fotos usando `multipart/form-data`. |
+| PUT | `/animales/{id}` | ORGANIZACION | Actualiza una mascota propia. |
+| DELETE | `/animales/{id}` | ORGANIZACION | Elimina una mascota propia. |
+| GET | `/fotos/{id}` | Público | Devuelve una foto almacenada en Garage. |
 
-### Seguridad actual
+Para `POST /animales/publicar`, el formulario debe enviar una parte `animal` con JSON y entre 2 y 8 partes repetidas llamadas `fotos`. Se aceptan JPEG, PNG y WebP, con un máximo de 5 MB por archivo. La respuesta incluye la mascota creada y las URLs de las fotos. La ruta antigua `POST /animales` está bloqueada; se debe usar `POST /animales/publicar`.
 
-Los endpoints `/api/v1/auth/**` permiten registro e inicio de sesión sin token. El resto de las rutas requiere autenticación JWT. El endpoint `PATCH /api/v1/organizaciones/{id}/activo` exige además el rol `ADMIN`. El panel Angular solo se muestra para una sesión cuyo rol es `ADMIN`. El resto de permisos por rol y el bloqueo operativo de organizaciones inactivas aún requieren implementación.
+El backend comprueba que la cuenta tenga una organización activa. Al actualizar o eliminar, verifica que la mascota pertenezca a esa organización.
 
-El CORS del backend permite el origen de desarrollo `http://localhost:4200`. Para usar el frontend desde otro origen habrá que agregarlo explícitamente a la configuración.
+## Garage S3
+
+El backend necesita estas variables de entorno para conectarse al almacenamiento:
+
+- `GARAGE_S3_ENDPOINT`
+- `GARAGE_S3_REGION`
+- `GARAGE_S3_BUCKET`
+- `GARAGE_S3_ACCESS_KEY_ID`
+- `GARAGE_S3_SECRET_KEY`
+
+No publiques sus valores, contraseñas ni tokens en GitHub. En el miniserver, el archivo de configuración local se carga antes de iniciar Spring:
+
+```bash
+set -a
+source ~/.config/huellitas/garage.env
+set +a
+./mvnw spring-boot:run
+```
+
+La aplicación también admite `app.api.public-url` para construir las URLs públicas de las fotos; por defecto usa `https://spring.itechk.us`.
+
+## Seguridad y configuración
+
+- Las rutas de autenticación permiten acceso sin JWT.
+- El resto de la API requiere autenticación.
+- La publicación y gestión de mascotas requieren rol `ORGANIZACION`; el servicio valida que la organización esté activa y sea propietaria de la mascota.
+- El cambio del estado de una organización requiere autoridad `ADMIN`.
+- Las fotos tienen una ruta de lectura pública para que el navegador pueda mostrarlas.
+- El backend habilita CORS para los orígenes configurados en `SecurityConfig`. Si cambia la dirección o el puerto del frontend, hay que actualizar la lista de orígenes permitidos.
+- El frontend apunta actualmente a `https://spring.itechk.us/api/v1`; cambia `API_URL` en los componentes si vas a usar otro entorno.
+
+El JWT se conserva en memoria mientras la aplicación está abierta; recargar la página cierra la sesión. El frontend no guarda contraseñas ni tokens en almacenamiento local.
 
 ## Estructura del repositorio
 
@@ -88,7 +137,7 @@ El CORS del backend permite el origen de desarrollo `http://localhost:4200`. Par
 │       ├── security/
 │       └── service/
 ├── src/main/resources/       # Configuración de Spring
-├── docs/                     # Documentación del proyecto
+├── docs/                     # Documentación
 ├── mvnw
 └── pom.xml
 ```
@@ -98,13 +147,14 @@ El CORS del backend permite el origen de desarrollo `http://localhost:4200`. Par
 - Java JDK 25.
 - MySQL 8.
 - Node.js 24 y npm 11 para el frontend.
+- Garage configurado como almacén S3 para publicar y recuperar fotos.
 - Git.
 
-## Configuración y ejecución
+## Ejecución en desarrollo
 
 ### Backend
 
-Configura la conexión a MySQL en `src/main/resources/application.properties`. Ese archivo contiene credenciales locales y no debe publicarse.
+Configura la conexión de MySQL en `src/main/resources/application.properties` y carga las variables de Garage en el entorno. No publiques credenciales.
 
 Desde la raíz del repositorio:
 
@@ -112,7 +162,7 @@ Desde la raíz del repositorio:
 ./mvnw spring-boot:run
 ```
 
-Por defecto, Spring Boot escucha en `http://localhost:8080`.
+Spring Boot escucha por defecto en `http://localhost:8080`.
 
 ### Frontend
 
@@ -121,39 +171,25 @@ En otra terminal:
 ```bash
 cd frontend
 npm install
+npm run build
 npm start -- --host 0.0.0.0
 ```
 
-Angular inicia el servidor de desarrollo en el puerto 4200. Abre `http://localhost:4200` en el equipo donde corre el navegador. El servidor de desarrollo es para desarrollo y pruebas, no para producción.
+Angular escucha por defecto en el puerto 4200. Abre `http://localhost:4200` desde el equipo que accede al servidor, o configura el reenvío del puerto 4200 en VS Code Remote SSH. Mantén activa la terminal de `npm start`. Este servidor es solo para desarrollo y pruebas.
 
-## Flujo de autenticación y registro en Angular
+## Flujo de uso
 
-### Iniciar sesión
+1. Registra una cuenta de organización y espera a que una cuenta ADMIN active su perfil.
+2. Inicia sesión con la organización activa y publica una mascota con los datos requeridos y al menos dos fotos.
+3. Registra o inicia sesión con una cuenta de adoptante.
+4. El catálogo consulta `GET /api/v1/animales` con el JWT y muestra las mascotas disponibles.
+5. Selecciona una tarjeta para ver la foto principal y los datos de la mascota.
 
-1. La persona ingresa correo y contraseña.
-2. El login actual usa Reactive Forms para validar los campos y envía `{ "email": "...", "pass": "..." }` a `POST /api/v1/auth/login`.
-3. Si las credenciales son válidas, la pantalla muestra el rol y correo devueltos por Spring.
-4. «Cerrar sesión» limpia el estado de sesión en la aplicación.
+## Verificación realizada
 
-### Crear una cuenta
-
-Los formularios de registro usan Signal Forms y permiten elegir uno de estos tipos:
-
-- **Adoptante:** nombre, apellidos, correo y contraseña; se envía a `POST /api/v1/auth/register`.
-- **Organización:** datos de acceso y perfil (nombre institucional, tipo, correo de contacto, teléfono, dirección, distrito y descripción opcional); se envía a `POST /api/v1/auth/register/organizacion`.
-
-Al completar el registro, Angular vuelve al login y muestra un mensaje de resultado. En el registro de organización aclara que su perfil queda pendiente de activación.
-
-Por ahora el token recibido al iniciar sesión se mantiene solo en el estado de la pantalla; no se persiste al recargar. El panel de administración sí lo adjunta a las consultas y cambios de estado de organizaciones.
-
-## Próximos pasos
-
-- Aplicar el estado inactivo de la organización para impedir el acceso y la publicación de mascotas.
-- Aplicar permisos por rol al resto de los endpoints.
-- Vincular las operaciones de mascotas con la organización del usuario autenticado y validar propiedad.
-- Implementar catálogo, solicitudes de adopción y vistas según rol.
-- Configurar Garage para almacenamiento de imágenes y enlazar la carga desde la aplicación.
-- Preparar el despliegue del frontend y backend.
+- El frontend completó `npm run build` en la rama de trabajo. Se ajustó el umbral de advertencia de estilos de componentes a 6 kB; el máximo de error se mantiene en 8 kB.
+- Se publicó una mascota con dos imágenes mediante `POST /api/v1/animales/publicar`; el servidor respondió `201 Created` y devolvió las URLs de fotos.
+- La conexión a Garage se comprobó desde Cyberduck mediante un túnel SSH local.
 
 ## Proyecto académico
 
