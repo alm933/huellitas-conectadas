@@ -134,6 +134,11 @@
       [token]="currentSession.token"
       (logoutRequested)="logout()"
     />
+  } @else if (currentSession.role === 'ADOPTANTE') {
+    <app-mascotas-adoptante
+      [token]="currentSession.token"
+      (logoutRequested)="logout()"
+    />
   } @else {
     <main class="page">
       <section class="login-card role-card" aria-labelledby="role-title">
