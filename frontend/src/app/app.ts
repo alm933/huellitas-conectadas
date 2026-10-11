@@ -1,3 +1,4 @@
+import { PublicarMascotaComponent } from './organizacion/publicar-mascota.component';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import {
@@ -70,7 +71,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
 
 @Component({
   selector: 'app-root',
-  imports: [ReactiveFormsModule, FormField],
+  imports: [ReactiveFormsModule, FormField, PublicarMascotaComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
