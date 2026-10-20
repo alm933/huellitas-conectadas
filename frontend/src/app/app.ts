@@ -138,6 +138,13 @@ function clearPersistedSession(): void {
 export class App {
   private readonly http = inject(HttpClient);
 
+  constructor() {
+    const currentSession = this.session();
+    if (currentSession?.role === 'ADMIN') {
+      this.loadOrganizations(currentSession.token);
+    }
+  }
+
   protected readonly showPassword = signal(false);
   protected readonly message = signal('');
   protected readonly loading = signal(false);
