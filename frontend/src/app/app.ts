@@ -68,7 +68,66 @@ interface OrganizacionRegistration {
   descripcion: string;
 }
 
+
 const API_URL = 'https://spring.itechk.us/api/v1';
+const SESSION_STORAGE_KEY = 'huellitas.session';
+
+function readStoredSession(): LoginResponse | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!stored) {
+      return null;
+    }
+
+    const session = JSON.parse(stored) as Partial<LoginResponse>;
+    const validRole = session.role === 'ADMIN'
+      || session.role === 'ORGANIZACION'
+      || session.role === 'ADOPTANTE';
+
+    if (
+      typeof session.token === 'string'
+      && session.token.length > 0
+      && typeof session.email === 'string'
+      && validRole
+    ) {
+      return session as LoginResponse;
+    }
+
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Si el almacenamiento está bloqueado o contiene datos dañados, se inicia sin sesión.
+  }
+
+  return null;
+}
+
+function persistSession(session: LoginResponse): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // La sesión seguirá activa en memoria durante esta pestaña si el almacenamiento no está disponible.
+  }
+}
+
+function clearPersistedSession(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // El cierre de sesión en memoria debe funcionar aunque el almacenamiento esté bloqueado.
+  }
+}
 
 @Component({
   selector: 'app-root',
@@ -79,6 +138,13 @@ const API_URL = 'https://spring.itechk.us/api/v1';
 export class App {
   private readonly http = inject(HttpClient);
 
+  constructor() {
+    const currentSession = this.session();
+    if (currentSession?.role === 'ADMIN') {
+      this.loadOrganizations(currentSession.token);
+    }
+  }
+
   protected readonly showPassword = signal(false);
   protected readonly message = signal('');
   protected readonly loading = signal(false);
@@ -86,7 +152,7 @@ export class App {
   protected readonly registrationAttempted = signal(false);
   protected readonly view = signal<'login' | 'register'>('login');
   protected readonly registrationType = signal<RegistrationType>('ADOPTANTE');
-  protected readonly session = signal<LoginResponse | null>(null);
+  protected readonly session = signal<LoginResponse | null>(readStoredSession());
   protected readonly organizations = signal<OrganizationSummary[]>([]);
   protected readonly loadingOrganizations = signal(false);
   protected readonly organizationError = signal('');
@@ -180,6 +246,7 @@ export class App {
 
     this.http.post<LoginResponse>(`${API_URL}/auth/login`, { email, pass: password }).subscribe({
       next: response => {
+        persistSession(response);
         this.session.set(response);
         this.message.set('');
         this.loading.set(false);
@@ -368,6 +435,7 @@ export class App {
   }
 
   protected logout(): void {
+    clearPersistedSession();
     this.session.set(null);
     this.organizations.set([]);
     this.organizationError.set('');
