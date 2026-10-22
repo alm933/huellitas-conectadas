@@ -58,7 +58,7 @@
             }
           </div>
 
-          <button class="submit-button" type="submit" [disabled]="loading()">
+          <button class="submit-button" type="submit" [disabled]="loginForm.invalid || loading()" [attr.aria-busy]="loading()">
             {{ loading() ? 'Ingresando…' : 'Iniciar sesión' }}
           </button>
         </form>
@@ -247,7 +247,7 @@
       }
 
       @if (message()) {
-        <p class="form-message" role="status">{{ message() }}</p>
+        <p class="form-message" [class.form-message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
       }
 
       @if (view() === 'login') {

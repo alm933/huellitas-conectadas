@@ -21,6 +21,7 @@ export class AuthPageComponent {
 
   protected readonly showPassword = signal(false);
   protected readonly message = signal('');
+  protected readonly messageIsError = signal(false);
   protected readonly loading = signal(false);
   protected readonly registering = signal(false);
   protected readonly registrationAttempted = signal(false);
@@ -115,6 +116,7 @@ export class AuthPageComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        this.messageIsError.set(true);
 
         if (error.status === 0) {
           this.message.set(
@@ -182,6 +184,7 @@ export class AuthPageComponent {
 
   private registrationSucceeded(email: string, isOrganizacion: boolean): void {
     this.registering.set(false);
+    this.messageIsError.set(false);
     this.registrationAttempted.set(false);
     this.adoptanteModel.set({ name: '', lastName: '', email: '', pass: '' });
     this.organizacionModel.set({
@@ -210,6 +213,7 @@ export class AuthPageComponent {
 
   private handleRegistrationError(error: HttpErrorResponse): void {
     this.registering.set(false);
+    this.messageIsError.set(true);
 
     if (error.status === 0) {
       this.message.set(
