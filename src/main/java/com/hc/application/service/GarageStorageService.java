@@ -41,6 +41,7 @@ public class GarageStorageService {
                         AwsBasicCredentials.create(accessKey, secretKey)))
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(true)
+                        .chunkedEncodingEnabled(false)
                         .build())
                 .build();
     }
@@ -58,9 +59,8 @@ public class GarageStorageService {
                 .contentType(contentType)
                 .build();
 
-        s3Client.putObject(
-                request,
-                RequestBody.fromInputStream(archivo.getInputStream(), archivo.getSize()));
+        byte[] contenido = archivo.getBytes();
+        s3Client.putObject(request, RequestBody.fromBytes(contenido));
     }
 
     public byte[] descargar(String key) throws IOException {
