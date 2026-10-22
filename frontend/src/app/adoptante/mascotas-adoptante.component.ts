@@ -1,21 +1,9 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Component, OnInit, inject, input, output, signal } from '@angular/core';
-
-interface Animal {
-  id: number;
-  nombre: string;
-  especie: string;
-  raza: string | null;
-  edadMeses: number;
-  sexo: string;
-  tamanio: string;
-  descripcion: string | null;
-  fotoUrl: string | null;
-  estado: string;
-  organizacionNombre: string;
-}
-
-const API_URL = 'https://spring.itechk.us/api/v1';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AnimalsApiService } from '../core/animals-api.service';
+import { Animal } from '../core/models';
+import { SessionService } from '../core/session.service';
 
 @Component({
   selector: 'app-mascotas-adoptante',
@@ -29,7 +17,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
           } @else {
             <div class="hero-placeholder" aria-label="Mascota sin foto">🐾</div>
           }
-          <button class="round-button back-button" type="button" aria-label="Volver al catálogo" (click)="selectedAnimal.set(null)">‹</button>
+          <button class="round-button back-button" type="button" aria-label="Volver al catálogo" (click)="backToCatalog()">‹</button>
           <button class="round-button favorite-button" type="button" [attr.aria-pressed]="isFavorite(animal.id)" [attr.aria-label]="isFavorite(animal.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(animal.id)">
             {{ isFavorite(animal.id) ? '♥' : '♡' }}
           </button>
@@ -54,7 +42,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
               <p class="breed"><strong>Raza:</strong> {{ animal.raza }} · {{ animal.especie }}</p>
             }
           </section>
-          <button class="back-link" type="button" (click)="selectedAnimal.set(null)">← Volver a las mascotas</button>
+          <button class="back-link" type="button" (click)="backToCatalog()">← Volver a las mascotas</button>
         </section>
       </main>
     } @else {
@@ -65,7 +53,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
             <h1>Mascotas que buscan hogar</h1>
             <p>Conoce a quienes esperan una familia como la tuya.</p>
           </div>
-          <button class="logout-button" type="button" (click)="logoutRequested.emit()">Cerrar sesión</button>
+          <button class="logout-button" type="button" (click)="session.logout()">Cerrar sesión</button>
         </header>
         @if (error()) {
           <div class="notice error" role="alert">
@@ -87,7 +75,7 @@ const API_URL = 'https://spring.itechk.us/api/v1';
         } @else {
           <section class="animal-grid" aria-label="Mascotas disponibles">
             @for (item of animals(); track item.id) {
-              <button class="animal-card" type="button" (click)="selectedAnimal.set(item)">
+              <button class="animal-card" type="button" (click)="openAnimal(item)">
                 <span class="card-image">
                   @if (item.fotoUrl) { <img [src]="item.fotoUrl" [alt]="'Foto de ' + item.nombre" loading="lazy" /> }
                   @else { <span class="card-placeholder" aria-hidden="true">🐾</span> }
@@ -129,9 +117,10 @@ const API_URL = 'https://spring.itechk.us/api/v1';
     @media(max-width:380px){.animal-grid{grid-template-columns:1fr}.card-image{aspect-ratio:1.4}}
   `],})
 export class MascotasAdoptanteComponent implements OnInit {
-  private readonly http = inject(HttpClient);
-  readonly token = input.required<string>();
-  readonly logoutRequested = output<void>();
+  private readonly api = inject(AnimalsApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  protected readonly session = inject(SessionService);
   protected readonly animals = signal<Animal[]>([]);
   protected readonly selectedAnimal = signal<Animal | null>(null);
   protected readonly favorites = signal<number[]>([]);
@@ -139,15 +128,39 @@ export class MascotasAdoptanteComponent implements OnInit {
   protected readonly error = signal('');
 
   ngOnInit(): void {
-    this.loadAnimals();
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      const animalId = Number(id);
+      if (!Number.isSafeInteger(animalId) || animalId <= 0) {
+        this.error.set('ID de mascota no válido.');
+        return;
+      }
+      this.loading.set(true);
+      this.api.get(animalId).subscribe({
+        next: animal => {
+          this.loading.set(false);
+          if (animal.estado === 'DISPONIBLE') this.selectedAnimal.set(animal);
+          else this.error.set('Esta mascota ya no está disponible.');
+        },
+        error: () => { this.loading.set(false); this.error.set('No se pudo cargar la mascota.'); }
+      });
+    } else {
+      this.loadAnimals();
+    }
+  }
+
+  protected openAnimal(animal: Animal): void {
+    void this.router.navigate(['/adoptante/mascotas', animal.id]);
+  }
+
+  protected backToCatalog(): void {
+    void this.router.navigateByUrl('/adoptante');
   }
 
   protected loadAnimals(): void {
     this.loading.set(true);
     this.error.set('');
-    this.http.get<Animal[]>(`${API_URL}/animales`, {
-      headers: new HttpHeaders({ Authorization: `Bearer ${this.token()}` })
-    }).subscribe({
+    this.api.list().subscribe({
       next: animals => {
         this.animals.set(animals.filter(animal => animal.estado === 'DISPONIBLE'));
         this.loading.set(false);

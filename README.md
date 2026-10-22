@@ -9,13 +9,14 @@ El repositorio contiene un backend REST con Spring Boot y un frontend Angular en
 ### Funcionalidad implementada
 
 - Registro e inicio de sesión con JWT y control de acceso mediante Spring Security.
-- Panel de administración para consultar organizaciones y activar o desactivar sus perfiles.
-- Vista de organización para publicar una mascota con entre 2 y 8 fotos.
+- Panel de administración para consultar, editar y activar o desactivar organizaciones.
+- Vista de organización para consultar sus mascotas, publicar con entre 2 y 8 fotos, editar datos y estado, y eliminar publicaciones.
 - Almacenamiento de fotos en Garage mediante su API compatible con S3; el backend conserva las claves y metadatos asociados.
 - Catálogo para adoptantes que muestra mascotas con estado `DISPONIBLE`.
 - Vista de detalle con foto principal, edad, sexo, tamaño, historia y organización responsable.
 - Diseño adaptable a pantallas de celular y escritorio.
 - Validación de propiedad para que una organización gestione únicamente sus mascotas.
+- Rutas Angular por rol, con protección de acceso y retorno al login cuando no existe sesión.
 
 ### Pendiente
 
@@ -42,6 +43,7 @@ El repositorio contiene un backend REST con Spring Boot y un frontend Angular en
 - Reactive Forms para inicio de sesión y publicación de mascotas.
 - Signal Forms para los formularios de registro.
 - Angular HttpClient para consumir la API.
+- Servicios y modelos separados de los componentes; Angular Router y Bootstrap 5.
 - CSS adaptable para catálogo y detalle.
 
 ## Endpoints principales
@@ -66,9 +68,9 @@ Authorization: Bearer <JWT>
 |---|---|---|---|
 | GET | `/organizaciones` | Autenticado | Lista organizaciones. |
 | GET | `/organizaciones/{id}` | Autenticado | Consulta una organización. |
-| POST | `/organizaciones` | Autenticado | Crea un perfil de organización. |
-| PUT | `/organizaciones/{id}` | Autenticado | Actualiza un perfil. |
-| DELETE | `/organizaciones/{id}` | Autenticado | Elimina un perfil. |
+| POST | `/organizaciones` | ADMIN | Crea un perfil de organización directamente (el registro de cuentas usa `/auth/register/organizacion`). |
+| PUT | `/organizaciones/{id}` | ADMIN | Actualiza un perfil. |
+| DELETE | `/organizaciones/{id}` | ADMIN | Elimina un perfil mediante la API; la interfaz no ofrece este botón. |
 | PATCH | `/organizaciones/{id}/activo` | ADMIN | Activa o desactiva un perfil con `{ "activo": true }` o `{ "activo": false }`. |
 
 El registro desde Angular crea el perfil inicialmente inactivo. La organización debe ser activada por un administrador antes de publicar o gestionar mascotas.
@@ -78,6 +80,7 @@ El registro desde Angular crea el perfil inicialmente inactivo. La organización
 | Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
 | GET | `/animales` | Autenticado | Lista animales. El catálogo Angular filtra los que tienen estado `DISPONIBLE`. |
+| GET | `/animales/mios` | ORGANIZACION | Lista las publicaciones de la organización autenticada. |
 | GET | `/animales/{id}` | Autenticado | Consulta una mascota. |
 | POST | `/animales/publicar` | ORGANIZACION | Publica una mascota y sube sus fotos usando `multipart/form-data`. |
 | PUT | `/animales/{id}` | ORGANIZACION | Actualiza una mascota propia. |
@@ -114,12 +117,12 @@ La aplicación también admite `app.api.public-url` para construir las URLs púb
 - Las rutas de autenticación permiten acceso sin JWT.
 - El resto de la API requiere autenticación.
 - La publicación y gestión de mascotas requieren rol `ORGANIZACION`; el servicio valida que la organización esté activa y sea propietaria de la mascota.
-- El cambio del estado de una organización requiere autoridad `ADMIN`.
+- Crear, editar o eliminar organizaciones directamente por la API, así como cambiar su estado, requiere autoridad `ADMIN`.
 - Las fotos tienen una ruta de lectura pública para que el navegador pueda mostrarlas.
 - El backend habilita CORS para los orígenes configurados en `SecurityConfig`. Si cambia la dirección o el puerto del frontend, hay que actualizar la lista de orígenes permitidos.
-- El frontend apunta actualmente a `https://spring.itechk.us/api/v1`; cambia `API_URL` en los componentes si vas a usar otro entorno.
+- El frontend apunta actualmente a `https://spring.itechk.us/api/v1`; ajusta las URLs base de los servicios en `frontend/src/app/core/` si cambias de entorno.
 
-El JWT se conserva en memoria mientras la aplicación está abierta; recargar la página cierra la sesión. El frontend no guarda contraseñas ni tokens en almacenamiento local.
+El JWT se conserva en `sessionStorage` de la pestaña: recargar no cierra la sesión; el botón «Cerrar sesión» lo borra. No se guardan contraseñas. Al cerrar la pestaña termina esa sesión.
 
 ## Estructura del repositorio
 
@@ -180,14 +183,15 @@ Angular escucha por defecto en el puerto 4200. Abre `http://localhost:4200` desd
 ## Flujo de uso
 
 1. Registra una cuenta de organización y espera a que una cuenta ADMIN active su perfil.
-2. Inicia sesión con la organización activa y publica una mascota con los datos requeridos y al menos dos fotos.
+2. Inicia sesión con la organización activa: en «Mis mascotas» puedes publicar con al menos dos fotos, editar una publicación y eliminarla.
 3. Registra o inicia sesión con una cuenta de adoptante.
 4. El catálogo consulta `GET /api/v1/animales` con el JWT y muestra las mascotas disponibles.
-5. Selecciona una tarjeta para ver la foto principal y los datos de la mascota.
+5. Selecciona una tarjeta para abrir `/adoptante/mascotas/{id}` y ver la foto principal y los datos de la mascota.
 
 ## Verificación realizada
 
-- El frontend completó `npm run build` en la rama de trabajo. Se ajustó el umbral de advertencia de estilos de componentes a 6 kB; el máximo de error se mantiene en 8 kB.
+- El frontend completó `npm run build` y `npm test -- --watch=false` en la rama T2 (3 pruebas). El umbral de advertencia inicial es 750 kB por la hoja de estilos de Bootstrap.
+- El backend necesita Maven Central o un caché Maven local con Spring Boot 4.1.1 para compilarse. Antes de desplegar esta rama, ejecutar `./mvnw -DskipTests compile` en el miniserver.
 - Se publicó una mascota con dos imágenes mediante `POST /api/v1/animales/publicar`; el servidor respondió `201 Created` y devolvió las URLs de fotos.
 - La conexión a Garage se comprobó desde Cyberduck mediante un túnel SSH local.
 

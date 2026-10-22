@@ -5,28 +5,38 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.AnimalEntity;
+import com.hc.application.entity.AnimalFotoEntity;
 import com.hc.application.entity.OrganizacionEntity;
 import com.hc.application.entity.UsuarioEntity;
 import com.hc.application.exception.RecursoNoEncontradoException;
 import com.hc.application.repository.AnimalRepository;
+import com.hc.application.repository.AnimalFotoRepository;
 import com.hc.application.repository.OrganizacionRepository;
 
 @Service
 public class AnimalService {
 
     private final AnimalRepository animalRepository;
+    private final AnimalFotoRepository fotoRepository;
     private final OrganizacionRepository organizacionRepository;
+    private final GarageStorageService garageStorageService;
 
     public AnimalService(
             AnimalRepository animalRepository,
-            OrganizacionRepository organizacionRepository) {
+            AnimalFotoRepository fotoRepository,
+            OrganizacionRepository organizacionRepository,
+            GarageStorageService garageStorageService) {
         this.animalRepository = animalRepository;
+        this.fotoRepository = fotoRepository;
         this.organizacionRepository = organizacionRepository;
+        this.garageStorageService = garageStorageService;
     }
 
     @Transactional(readOnly = true)
@@ -35,6 +45,19 @@ public class AnimalService {
                 .stream()
                 .map(this::convertirAResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnimalResponse> listarPropios(UsuarioEntity usuarioActual) {
+        if (usuarioActual == null || usuarioActual.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Debes iniciar sesión.");
+        }
+        OrganizacionEntity organizacion = organizacionRepository
+                .findByUsuario_Id(usuarioActual.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "La cuenta no está vinculada a una organización."));
+        return animalRepository.findByOrganizacion_IdOrderByFechaPublicacionDesc(organizacion.getId())
+                .stream().map(this::convertirAResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -77,7 +100,24 @@ public class AnimalService {
                 obtenerOrganizacionActiva(usuarioActual);
         AnimalEntity animal = obtenerEntidad(id);
         validarPropiedad(animal, organizacionActual);
+        List<AnimalFotoEntity> fotos = fotoRepository.findByAnimal_IdOrderByIdAsc(id);
+        List<String> claves = fotos.stream().map(AnimalFotoEntity::getGarageKey).toList();
+        fotoRepository.deleteAll(fotos);
+        fotoRepository.flush();
         animalRepository.delete(animal);
+        // Only remove objects when the database commit succeeds.
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (String clave : claves) {
+                    try {
+                        garageStorageService.eliminar(clave);
+                    } catch (RuntimeException ignored) {
+                        // The database operation completed; a storage cleanup can be retried separately.
+                    }
+                }
+            }
+        });
     }
 
     private void aplicarDatos(AnimalEntity animal, AnimalRequest request) {

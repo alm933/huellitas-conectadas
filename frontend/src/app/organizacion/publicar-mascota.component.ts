@@ -1,37 +1,29 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnDestroy, Output, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AnimalsApiService } from '../core/animals-api.service';
+import { AnimalPublicationResponse } from '../core/models';
+import { SessionService } from '../core/session.service';
 
 interface PhotoPreview {
   file: File;
   url: string;
 }
 
-interface AnimalPublicationResponse {
-  animal: {
-    id: number;
-    nombre: string;
-    fotoUrl: string | null;
-  };
-  fotos: Array<{ id: number; url: string; contentType: string }>;
-}
-
-const API_URL = 'https://spring.itechk.us/api/v1';
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Component({
   selector: 'app-publicar-mascota',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './publicar-mascota.component.html',
   styleUrl: './publicar-mascota.component.css'
 })
 export class PublicarMascotaComponent implements OnDestroy {
-  private readonly http = inject(HttpClient);
-
-  @Input({ required: true }) token = '';
-  @Output() readonly logoutRequested = new EventEmitter<void>();
+  private readonly api = inject(AnimalsApiService);
+  protected readonly session = inject(SessionService);
 
   protected readonly form = new FormGroup({
     nombre: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(80)] }),
@@ -112,16 +104,9 @@ export class PublicarMascotaComponent implements OnDestroy {
       estado: 'DISPONIBLE'
     };
 
-    const body = new FormData();
-    body.append('animal', new Blob([JSON.stringify(animal)], { type: 'application/json' }));
-    for (const photo of this.photos()) {
-      body.append('fotos', photo.file, photo.file.name);
-    }
-
     this.uploading.set(true);
-    this.http.post<AnimalPublicationResponse>(API_URL + '/animales/publicar', body, {
-      headers: new HttpHeaders({ Authorization: 'Bearer ' + this.token })
-    }).subscribe({
+    this.api.publish({ ...animal, edadMeses: values.edadMeses!, estado: 'DISPONIBLE' },
+      this.photos().map(photo => photo.file)).subscribe({
       next: response => {
         this.uploading.set(false);
         this.success.set(response);
@@ -152,10 +137,6 @@ export class PublicarMascotaComponent implements OnDestroy {
         }
       }
     });
-  }
-
-  protected requestLogout(): void {
-    this.logoutRequested.emit();
   }
 
   ngOnDestroy(): void {
