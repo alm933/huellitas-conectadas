@@ -5,8 +5,9 @@
       <h1>Publicar una mascota</h1>
       <p class="subtitle">Completa su información y adjunta entre 2 y 8 fotos.</p>
     </div>
-    <button class="logout-button" type="button" (click)="requestLogout()">Cerrar sesión</button>
+    <button class="logout-button" type="button" (click)="session.logout()">Cerrar sesión</button>
   </header>
+  <a routerLink="/organizacion">← Volver a mis mascotas</a>
 
   <p class="activation-note">
     La organización debe estar activada por una persona administradora para publicar.

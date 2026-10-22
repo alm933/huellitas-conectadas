@@ -1,0 +1,152 @@
+    <main class="admin-page">
+      <header class="admin-header">
+        <div>
+          <p class="eyebrow">Huellitas Conectadas</p>
+          <h1>Administración</h1>
+          <p class="admin-subtitle">Solicitudes de organizaciones y estado de sus perfiles</p>
+        </div>
+        <div class="admin-user">
+          <span>{{ session.current()?.email }}</span>
+          <button class="secondary-button" type="button" (click)="session.logout()">Cerrar sesión</button>
+        </div>
+      </header>
+
+
+      @if (editing(); as organization) {
+        <section class="admin-section edit-panel" aria-labelledby="edit-organization-title">
+          <h2 id="edit-organization-title">Editar {{ organization.nombre }}</h2>
+          <form [formGroup]="editForm" (ngSubmit)="saveEdit()" novalidate>
+            <div class="edit-fields">
+              <label>Nombre <input formControlName="nombre" maxlength="120" /></label>
+              <label>Tipo
+                <select formControlName="tipo"><option value="REFUGIO">Refugio</option><option value="ALBERGUE">Albergue</option><option value="VETERINARIA">Veterinaria</option></select>
+              </label>
+              <label>Correo de contacto <input formControlName="correo" type="email" /></label>
+              <label>Teléfono <input formControlName="telefono" /></label>
+              <label>Dirección <input formControlName="direccion" /></label>
+              <label>Distrito <input formControlName="distrito" /></label>
+              <label>Descripción <textarea formControlName="descripcion" maxlength="500"></textarea></label>
+            </div>
+            @if (editForm.invalid && editForm.touched) { <p class="admin-alert error-alert">Revisa los campos obligatorios y el correo.</p> }
+            <div class="edit-actions">
+              <button class="btn btn-success" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar cambios' }}</button>
+              <button class="secondary-button" type="button" (click)="editing.set(null)">Cancelar</button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <section class="admin-overview" aria-label="Resumen de organizaciones">
+        <article class="overview-card pending-overview">
+          <span class="overview-number">{{ pendingOrganizations().length }}</span>
+          <span>Solicitudes pendientes</span>
+        </article>
+        <article class="overview-card active-overview">
+          <span class="overview-number">{{ activeOrganizations().length }}</span>
+          <span>Organizaciones activas</span>
+        </article>
+        <button class="secondary-button refresh-button" type="button" (click)="refreshOrganizations()" [disabled]="loadingOrganizations()">
+          {{ loadingOrganizations() ? 'Actualizando…' : 'Actualizar lista' }}
+        </button>
+      </section>
+
+      <app-status-notice [message]="organizationError()" kind="error" />
+      <app-status-notice [message]="organizationNotice()" />
+
+      @if (loadingOrganizations() && organizations().length === 0) {
+        <p class="empty-state">Cargando organizaciones…</p>
+      } @else {
+        <section class="admin-section" aria-labelledby="pending-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Requieren revisión</p>
+              <h2 id="pending-title">Solicitudes pendientes</h2>
+            </div>
+          </div>
+
+          @if (pendingOrganizations().length === 0) {
+            <p class="empty-state">No hay solicitudes pendientes por ahora.</p>
+          } @else {
+            <div class="organization-list">
+              @for (organization of pendingOrganizations(); track organization.id) {
+                <article class="organization-card">
+                  <div class="organization-info">
+                    <div class="organization-title-row">
+                      <h3>{{ organization.nombre }}</h3>
+                      <span class="status-badge pending-badge">Pendiente</span>
+                    </div>
+                    <p class="organization-type">{{ organization.tipo }}</p>
+                    <div class="organization-details">
+                      <span>{{ organization.correo }}</span>
+                      <span>{{ organization.telefono }}</span>
+                      <span>{{ organization.direccion }}, {{ organization.distrito }}</span>
+                    </div>
+                    @if (organization.descripcion) {
+                      <p class="organization-description">{{ organization.descripcion }}</p>
+                    }
+                  </div>
+                  <button class="secondary-button" type="button" (click)="startEdit(organization)">Editar datos</button>
+                  <button
+                    class="status-switch"
+                    type="button"
+                    [class.enabled]="organization.activo"
+                    [attr.aria-pressed]="organization.activo"
+                    [disabled]="updatingOrganizationId() === organization.id"
+                    (click)="toggleOrganization(organization)"
+                  >
+                    <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+                    <span>{{ updatingOrganizationId() === organization.id ? 'Actualizando…' : 'Activar organización' }}</span>
+                  </button>
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="admin-section" aria-labelledby="active-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Cuentas autorizadas</p>
+              <h2 id="active-title">Organizaciones activas</h2>
+            </div>
+          </div>
+
+          @if (activeOrganizations().length === 0) {
+            <p class="empty-state">Todavía no hay organizaciones activas.</p>
+          } @else {
+            <div class="organization-list">
+              @for (organization of activeOrganizations(); track organization.id) {
+                <article class="organization-card">
+                  <div class="organization-info">
+                    <div class="organization-title-row">
+                      <h3>{{ organization.nombre }}</h3>
+                      <span class="status-badge active-badge">Activa</span>
+                    </div>
+                    <p class="organization-type">{{ organization.tipo }}</p>
+                    <div class="organization-details">
+                      <span>{{ organization.correo }}</span>
+                      <span>{{ organization.telefono }}</span>
+                      <span>{{ organization.direccion }}, {{ organization.distrito }}</span>
+                    </div>
+                    @if (organization.descripcion) {
+                      <p class="organization-description">{{ organization.descripcion }}</p>
+                    }
+                  </div>
+                  <button class="secondary-button" type="button" (click)="startEdit(organization)">Editar datos</button>
+                  <button
+                    class="status-switch enabled"
+                    type="button"
+                    [attr.aria-pressed]="organization.activo"
+                    [disabled]="updatingOrganizationId() === organization.id"
+                    (click)="toggleOrganization(organization)"
+                  >
+                    <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+                    <span>{{ updatingOrganizationId() === organization.id ? 'Actualizando…' : 'Desactivar organización' }}</span>
+                  </button>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+    </main>

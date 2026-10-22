@@ -45,6 +45,12 @@ public class AnimalController {
         return ResponseEntity.ok(animalService.listar());
     }
 
+    @GetMapping("/mios")
+    public ResponseEntity<List<AnimalResponse>> listarPropios(
+            @AuthenticationPrincipal UsuarioEntity usuarioActual) {
+        return ResponseEntity.ok(animalService.listarPropios(usuarioActual));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<AnimalResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(animalService.buscarPorId(id));
