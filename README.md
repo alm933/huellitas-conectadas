@@ -4,7 +4,7 @@ Plataforma web académica para conectar a personas interesadas en adoptar animal
 
 ## Estado actual
 
-El repositorio contiene un backend REST con Spring Boot y un frontend Angular en `frontend/`. La rama de trabajo actual reúne el flujo básico para registrar organizaciones y adoptantes, moderar organizaciones, publicar mascotas con fotos y permitir que adoptantes consulten las publicaciones.
+El repositorio contiene un backend REST con Spring Boot y un frontend Angular en `frontend/`. Incluye registro de organizaciones y adoptantes, moderación de organizaciones, publicación de mascotas con fotos, catálogo de adopción y documentación interactiva de la API con Swagger UI.
 
 ### Funcionalidad implementada
 
@@ -17,6 +17,9 @@ El repositorio contiene un backend REST con Spring Boot y un frontend Angular en
 - Diseño adaptable a pantallas de celular y escritorio.
 - Validación de propiedad para que una organización gestione únicamente sus mascotas.
 - Rutas Angular por rol, con protección de acceso y retorno al login cuando no existe sesión.
+- Sesión conservada al recargar la pestaña, botón de login deshabilitado si el formulario no es válido y errores de credenciales con contraste naranja.
+- Placeholder de huellitas en el catálogo, detalle y panel de organización para mascotas sin foto o con una imagen que no se puede cargar, incluidas publicaciones antiguas de prueba.
+- Swagger UI con documentación OpenAPI, autorización JWT y pruebas de endpoints desde el navegador.
 
 ### Pendiente
 
@@ -36,6 +39,7 @@ El repositorio contiene un backend REST con Spring Boot y un frontend Angular en
 - Spring Security, JWT y BCrypt.
 - Jakarta Validation.
 - AWS SDK para Java, conectado a Garage con protocolo S3.
+- springdoc-openapi 3.2.0 para documentación OpenAPI y Swagger UI.
 
 ### Frontend
 
@@ -92,6 +96,11 @@ Para `POST /animales/publicar`, el formulario debe enviar una parte `animal` con
 El backend comprueba que la cuenta tenga una organización activa. Al actualizar o eliminar, verifica que la mascota pertenezca a esa organización.
 
 ## Swagger UI y OpenAPI
+
+**Swagger UI es una interfaz web para consultar y probar los endpoints del backend.** Muestra las rutas,
+métodos HTTP, datos de entrada y respuestas de la API. **OpenAPI** es la especificación que describe
+ese contrato; springdoc la genera a partir de los controladores y DTO de Spring.
+Esto facilita revisar la integración y demostrar el funcionamiento del proyecto sin depender de Angular o EchoAPI.
 
 La API incluye `springdoc-openapi-starter-webmvc-ui` 3.2.0, compatible con Spring Boot 4.1.x.
 Con el backend iniciado en el puerto 8080:
@@ -159,7 +168,7 @@ La aplicación también admite `app.api.public-url` para construir las URLs púb
 ## Seguridad y configuración
 
 - Las rutas de autenticación permiten acceso sin JWT.
-- El resto de la API requiere autenticación.
+- Los endpoints de negocio requieren autenticación, excepto la lectura pública de fotos; Swagger UI y la especificación OpenAPI también son públicos.
 - La publicación y gestión de mascotas requieren rol `ORGANIZACION`; el servicio valida que la organización esté activa y sea propietaria de la mascota.
 - Crear, editar o eliminar organizaciones directamente por la API, así como cambiar su estado, requiere autoridad `ADMIN`.
 - Las fotos tienen una ruta de lectura pública para que el navegador pueda mostrarlas.
@@ -234,8 +243,10 @@ Angular escucha por defecto en el puerto 4200. Abre `http://localhost:4200` desd
 
 ## Verificación realizada
 
-- El frontend completó `npm run build` y `npm test -- --watch=false` en la rama T2 (3 pruebas). El umbral de advertencia inicial es 750 kB por la hoja de estilos de Bootstrap.
-- El backend necesita Maven Central o un caché Maven local con Spring Boot 4.1.1 para compilarse. Antes de desplegar esta rama, ejecutar `./mvnw -DskipTests compile` en el miniserver.
+- GitHub Actions verifica la compilación y las pruebas del frontend. El umbral de advertencia inicial es 750 kB por la hoja de estilos de Bootstrap.
+- La integración Swagger se verificó en GitHub Actions con Java 25: compilación del backend y tres pruebas de integración aprobadas, usando H2 en memoria.
+- Las pruebas del componente de fotos comprueban el placeholder para URLs vacías y fallidas, y la visualización de una nueva foto al cambiar la URL.
+- El backend necesita Maven Central o un caché Maven local para descargar sus dependencias.
 - Se publicó una mascota con dos imágenes mediante `POST /api/v1/animales/publicar`; el servidor respondió `201 Created` y devolvió las URLs de fotos.
 - La conexión a Garage se comprobó desde Cyberduck mediante un túnel SSH local.
 

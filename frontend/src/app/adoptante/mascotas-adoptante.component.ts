@@ -4,19 +4,17 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AnimalsApiService } from '../core/animals-api.service';
 import { Animal } from '../core/models';
 import { SessionService } from '../core/session.service';
+import { PetPhotoComponent } from '../shared/pet-photo.component';
 
 @Component({
   selector: 'app-mascotas-adoptante',
   standalone: true,
+  imports: [PetPhotoComponent],
   template: `
     @if (selectedAnimal(); as animal) {
       <main class="detail-page">
         <div class="detail-hero">
-          @if (animal.fotoUrl) {
-            <img [src]="animal.fotoUrl" [alt]="'Foto de ' + animal.nombre" />
-          } @else {
-            <div class="hero-placeholder" aria-label="Mascota sin foto">🐾</div>
-          }
+          <app-pet-photo [src]="animal.fotoUrl" [name]="animal.nombre" loading="eager" />
           <button class="round-button back-button" type="button" aria-label="Volver al catálogo" (click)="backToCatalog()">‹</button>
           <button class="round-button favorite-button" type="button" [attr.aria-pressed]="isFavorite(animal.id)" [attr.aria-label]="isFavorite(animal.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(animal.id)">
             {{ isFavorite(animal.id) ? '♥' : '♡' }}
@@ -77,8 +75,7 @@ import { SessionService } from '../core/session.service';
             @for (item of animals(); track item.id) {
               <button class="animal-card" type="button" (click)="openAnimal(item)">
                 <span class="card-image">
-                  @if (item.fotoUrl) { <img [src]="item.fotoUrl" [alt]="'Foto de ' + item.nombre" loading="lazy" /> }
-                  @else { <span class="card-placeholder" aria-hidden="true">🐾</span> }
+                  <app-pet-photo [src]="item.fotoUrl" [name]="item.nombre" />
                   <span class="card-heart" aria-hidden="true">{{ isFavorite(item.id) ? '♥' : '♡' }}</span>
                 </span>
                 <span class="card-copy">
@@ -104,11 +101,11 @@ import { SessionService } from '../core/session.service';
     .eyebrow{margin:0 0 9px;color:#568365;font-size:12px;font-weight:750;letter-spacing:1.5px;text-transform:uppercase}h1{margin:0;color:#24332c;font-size:clamp(28px,4vw,40px);letter-spacing:-1.3px}.catalog-header p:last-child{margin:9px 0 0;color:#718078}
     .logout-button,.catalog-footer button,.notice button,.empty button{padding:10px 14px;border:1px solid #d8e2d8;border-radius:10px;background:white;color:#3f7350;font-weight:700}
     .animal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:20px}.animal-card{overflow:hidden;padding:0;border:1px solid #e6e9e1;border-radius:18px;background:#fff;color:inherit;text-align:left;box-shadow:0 7px 22px #283c0d;transition:transform .16s,box-shadow .16s}.animal-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #283c1c}
-    .card-image{position:relative;display:grid;aspect-ratio:4/3;place-items:center;overflow:hidden;background:#e9efe5}.card-image img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%}.card-heart{position:absolute;top:12px;right:12px;display:grid;width:36px;height:36px;place-items:center;border-radius:50%;background:#fff9f5;color:#a75537;font-size:22px}.card-placeholder,.hero-placeholder{font-size:60px}
+    .card-image{position:relative;display:grid;aspect-ratio:4/3;place-items:center;overflow:hidden;background:#e9efe5}.card-heart{position:absolute;top:12px;right:12px;display:grid;width:36px;height:36px;place-items:center;border-radius:50%;background:#fff9f5;color:#a75537;font-size:22px}
     .card-copy{display:grid;gap:8px;padding:16px}.card-title{display:flex;justify-content:space-between;gap:12px;font-size:19px;font-weight:750}.card-age,.card-organization{color:#79847c;font-size:13px;font-weight:450}.card-description{display:-webkit-box;overflow:hidden;color:#647168;font-size:14px;line-height:1.5;-webkit-box-orient:vertical;-webkit-line-clamp:2}.card-cta{margin-top:5px;color:#477b59;font-size:14px;font-weight:750}
     .catalog-state{padding:48px 16px;color:#66746a;text-align:center}.empty{max-width:520px;margin:50px auto;padding:34px;border:1px solid #e6e9e1;border-radius:18px;background:white}.empty>span{font-size:40px}.empty h2{margin:12px 0 8px;color:#26352e}.empty p{line-height:1.6}
     .catalog-footer{display:flex;justify-content:space-between;align-items:center;margin-top:24px;color:#778179;font-size:13px}.catalog-footer button:disabled{opacity:.65;cursor:wait}.notice{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px;padding:13px 16px;border-radius:12px}.error{background:#fff0ec;color:#873f32}
-    .detail-page{min-height:100vh;background:#fff9f6}.detail-hero{position:relative;width:min(100%,900px);aspect-ratio:1.85;max-height:min(65vh,620px);margin:0 auto;background:#e7eddf}.detail-hero>img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 38%}.hero-placeholder{display:grid;width:100%;height:100%;place-items:center;color:#6c8a70}
+    .detail-page{min-height:100vh;background:#fff9f6}.detail-hero{position:relative;width:min(100%,900px);aspect-ratio:1.85;max-height:min(65vh,620px);margin:0 auto;background:#e7eddf}.detail-hero>app-pet-photo{--pet-photo-position:center 38%}
     .round-button{position:absolute;top:16px;display:grid;width:42px;height:42px;place-items:center;border:0;border-radius:50%;background:#fffbf7eb;color:#33423a;font-size:27px;box-shadow:0 2px 8px #0002}.back-button{left:16px}.favorite-button{right:16px;color:#a95539}
     .detail-sheet{position:relative;width:min(100%,900px);min-height:430px;margin:-24px auto 0;padding:24px 26px 32px;border-radius:24px 24px 0 0;background:#fff9f6}.title-line{display:flex;align-items:center;justify-content:space-between;gap:12px}.title-line h1{font-size:27px;letter-spacing:-.6px}.organization{margin:5px 0 0;color:#7d827d;font-size:13px}.ready-badge{flex:none;padding:8px 12px;border-radius:20px;background:#a5ece5;color:#28655d;font-size:12px;font-weight:750}
     .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0 28px}.stat{display:grid;min-height:92px;place-content:center;justify-items:center;gap:3px;border:1px solid transparent;border-radius:12px;text-align:center}.stat>span{font-size:18px;font-weight:750}.stat strong{font-size:12px}.stat small{color:#56645b;font-size:11px}.age{border-color:#f0d2c7;background:#f9e0d8;color:#985a45}.sex{border-color:#d3eeea;background:#e4f4f2;color:#43847b}.size{border-color:#e1dcda;background:#ece7e5;color:#786e68}
