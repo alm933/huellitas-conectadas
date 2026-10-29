@@ -5,10 +5,11 @@ import { AnimalsApiService } from '../core/animals-api.service';
 import { Animal } from '../core/models';
 import { SessionService } from '../core/session.service';
 import { StatusNoticeComponent } from '../shared/status-notice.component';
+import { PetPhotoComponent } from '../shared/pet-photo.component';
 
 @Component({
   selector: 'app-organizacion-dashboard',
-  imports: [RouterLink, StatusNoticeComponent],
+  imports: [RouterLink, StatusNoticeComponent, PetPhotoComponent],
   template: `
     <main class="organization-page">
       <header class="organization-header">
@@ -27,7 +28,7 @@ import { StatusNoticeComponent } from '../shared/status-notice.component';
         <div class="pet-management-grid">
           @for (animal of animals(); track animal.id) {
             <article class="pet-management-card card">
-              @if (animal.fotoUrl) { <img [src]="animal.fotoUrl" [alt]="'Foto de ' + animal.nombre" loading="lazy" /> }
+              <app-pet-photo [src]="animal.fotoUrl" [name]="animal.nombre" />
               <div class="pet-management-copy">
                 <h2>{{ animal.nombre }}</h2>
                 <p>{{ animal.especie }} · {{ animal.edadMeses }} meses · {{ animal.estado }}</p>
