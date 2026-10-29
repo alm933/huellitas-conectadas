@@ -1,5 +1,9 @@
 package com.hc.application.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -26,6 +30,7 @@ import com.hc.application.service.AnimalService;
 
 import jakarta.validation.Valid;
 
+@Tag(name = "Mascotas")
 @RestController
 @RequestMapping("/api/v1/animales")
 public class AnimalController {
@@ -73,6 +78,10 @@ public class AnimalController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+            summary = "Publicar mascota con fotos",
+            description = "Requiere rol ORGANIZACION. Envía animal como JSON y entre 2 y 8 fotos. "
+                    + "La parte animal debe tener Content-Type application/json.")
     @PostMapping(
             path = "/publicar",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

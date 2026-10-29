@@ -1,5 +1,7 @@
 package com.hc.application.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.io.IOException;
 import java.time.Duration;
 
@@ -16,6 +18,7 @@ import com.hc.application.entity.AnimalFotoEntity;
 import com.hc.application.repository.AnimalFotoRepository;
 import com.hc.application.service.GarageStorageService;
 
+@Tag(name = "Fotos")
 @RestController
 public class AnimalFotoController {
 

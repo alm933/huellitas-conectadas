@@ -1,5 +1,7 @@
 package com.hc.application.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import com.hc.application.service.OrganizacionService;
 
 import jakarta.validation.Valid;
 
+@Tag(name = "Organizaciones")
 @RestController 
 @RequestMapping ("/api/v1/organizaciones")
 public class OrganizacionController {
