@@ -91,6 +91,50 @@ Para `POST /animales/publicar`, el formulario debe enviar una parte `animal` con
 
 El backend comprueba que la cuenta tenga una organización activa. Al actualizar o eliminar, verifica que la mascota pertenezca a esa organización.
 
+## Swagger UI y OpenAPI
+
+La API incluye `springdoc-openapi-starter-webmvc-ui` 3.2.0, compatible con Spring Boot 4.1.x.
+Con el backend iniciado en el puerto 8080:
+
+- Interfaz local: <http://localhost:8080/swagger-ui.html>.
+- Interfaz por el túnel del backend: <https://spring.itechk.us/swagger-ui.html>.
+- Especificación JSON: `/v3/api-docs`; YAML: `/v3/api-docs.yaml`.
+
+Estas direcciones pertenecen a Spring, no al dominio del frontend `hc.itechk.us`.
+Swagger usa el origen desde el que se abre, por lo que funciona tanto localmente como por HTTPS.
+
+### Probar endpoints con JWT
+
+1. Abre **Autenticación → POST /api/v1/auth/login → Try it out**.
+2. Completa `email` y `pass` con una cuenta existente y pulsa **Execute**.
+3. Copia el campo `token` de la respuesta, pulsa **Authorize** y pega solo el JWT, sin `Bearer `.
+4. Prueba las operaciones del rol de esa cuenta. Un adoptante no puede publicar mascotas;
+   una organización solo puede modificar sus propias publicaciones.
+
+Para **POST /api/v1/animales/publicar**, introduce el objeto `animal` como JSON y selecciona
+entre 2 y 8 archivos en `fotos`. La documentación define `application/json` para la parte `animal`.
+Ejemplo de objeto:
+
+```json
+{"nombre":"Luna","especie":"Perro","raza":"Mestiza","edadMeses":24,"sexo":"HEMBRA","tamanio":"MEDIANO","descripcion":"Busca una familia.","estado":"DISPONIBLE"}
+```
+
+La documentación es pública; los permisos de la API siguen siendo los de Spring Security.
+Las acciones de **Execute** utilizan la base de datos y el almacenamiento configurados:
+crear, editar o eliminar desde Swagger realiza la operación real.
+La autorización no se configura para persistir entre recargas de Swagger.
+
+### Comprobar la integración
+
+```bash
+./mvnw -DskipTests compile
+./mvnw -Dtest=OpenApiDocumentationTest test
+```
+
+La prueba usa H2 en memoria y credenciales ficticias, sin conectarse a MySQL ni subir archivos a Garage.
+Verifica OpenAPI, Swagger UI, JWT, el tipo JSON del multipart y el rechazo de peticiones anónimas
+a endpoints protegidos. GitHub Actions ejecuta esta misma prueba.
+
 ## Garage S3
 
 El backend necesita estas variables de entorno para conectarse al almacenamiento:
