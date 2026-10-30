@@ -83,6 +83,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/animales/publicar")
                         .hasAuthority("ORGANIZACION")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/solicitudes-adopcion/animales/**")
+                        .hasAuthority("ADOPTANTE")
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/solicitudes-adopcion/organizacion")
+                        .hasAuthority("ORGANIZACION")
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/v1/solicitudes-adopcion/**")
+                        .hasAuthority("ORGANIZACION")
                         .requestMatchers(HttpMethod.GET, "/api/v1/fotos/**")
                         .permitAll()
                         .anyRequest().authenticated())

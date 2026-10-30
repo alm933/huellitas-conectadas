@@ -84,3 +84,16 @@ export interface AnimalPublicationResponse {
   animal: Animal;
   fotos: Array<{ id: number; url: string; contentType: string }>;
 }
+
+export type AdoptionRequestStatus = 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+
+export interface AdoptionRequest {
+  id: number;
+  animalId: number;
+  animalNombre: string;
+  adoptanteNombre: string;
+  adoptanteCorreo: string;
+  mensaje: string | null;
+  estado: AdoptionRequestStatus;
+  fechaSolicitud: string;
+}
