@@ -64,6 +64,13 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
           </div>
           <button class="logout-button" type="button" (click)="session.logout()">Cerrar sesión</button>
         </header>
+        <nav class="species-filters" aria-label="Filtrar mascotas por tipo">
+          @for (filter of speciesFilters; track filter.value) {
+            <button type="button" [class.active]="selectedSpecies() === filter.value"
+              [attr.aria-pressed]="selectedSpecies() === filter.value"
+              (click)="selectedSpecies.set(filter.value)">{{ filter.label }}</button>
+          }
+        </nav>
         @if (error()) {
           <div class="notice error" role="alert">
             <span>{{ error() }}</span>
@@ -81,9 +88,16 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
             <p>Cuando una organización publique mascotas disponibles, aparecerán aquí.</p>
             <button type="button" (click)="loadAnimals()">Actualizar</button>
           </section>
+        } @else if (filteredAnimals().length === 0) {
+          <section class="catalog-state empty">
+            <span aria-hidden="true">🐾</span>
+            <h2>No hay mascotas de este tipo</h2>
+            <p>Prueba otro filtro para ver más mascotas disponibles.</p>
+            <button type="button" (click)="selectedSpecies.set('TODAS')">Ver todas</button>
+          </section>
         } @else {
           <section class="animal-grid" aria-label="Mascotas disponibles">
-            @for (item of animals(); track item.id) {
+            @for (item of filteredAnimals(); track item.id) {
               <button class="animal-card" type="button" (click)="openAnimal(item)">
                 <span class="card-image">
                   <app-pet-photo [src]="item.fotoUrl" [name]="item.nombre" />
@@ -100,7 +114,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
           </section>
         }
         <footer class="catalog-footer">
-          <span>{{ animals().length }} {{ animals().length === 1 ? 'mascota disponible' : 'mascotas disponibles' }}</span>
+          <span>{{ filteredAnimals().length }} de {{ animals().length }} {{ animals().length === 1 ? 'mascota disponible' : 'mascotas disponibles' }}</span>
           <button type="button" (click)="loadAnimals()" [disabled]="loading()">{{ loading() ? 'Actualizando…' : 'Actualizar' }}</button>
         </footer>
       </main>
@@ -108,7 +122,8 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
   `,
   styles: [`
     :host{display:block;min-height:100vh;background:#f7f7f2;color:#26352e;font-family:Inter,"Segoe UI",sans-serif}*{box-sizing:border-box}button{font:inherit;cursor:pointer}
-    .catalog-page{width:min(calc(100% - 40px),1100px);margin:auto;padding:42px 0 28px}.catalog-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:28px}
+    .catalog-page{width:min(calc(100% - 40px),1100px);margin:auto;padding:42px 0 28px}.catalog-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:20px}
+    .species-filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:22px}.species-filters button{padding:9px 15px;border:1px solid #dce5dc;border-radius:22px;background:#fff;color:#42664c;font-size:14px;font-weight:650;transition:background .15s,color .15s,border-color .15s}.species-filters button:hover{border-color:#83a78b}.species-filters button.active{border-color:#477b59;background:#477b59;color:#fff}
     .eyebrow{margin:0 0 9px;color:#568365;font-size:12px;font-weight:750;letter-spacing:1.5px;text-transform:uppercase}h1{margin:0;color:#24332c;font-size:clamp(28px,4vw,40px);letter-spacing:-1.3px}.catalog-header p:last-child{margin:9px 0 0;color:#718078}
     .logout-button,.catalog-footer button,.notice button,.empty button{padding:10px 14px;border:1px solid #d8e2d8;border-radius:10px;background:white;color:#3f7350;font-weight:700}
     .animal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:20px}.animal-card{overflow:hidden;padding:0;border:1px solid #e6e9e1;border-radius:18px;background:#fff;color:inherit;text-align:left;box-shadow:0 7px 22px #283c0d;transition:transform .16s,box-shadow .16s}.animal-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px #283c1c}
@@ -127,12 +142,24 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     @media(max-width:380px){.animal-grid{grid-template-columns:1fr}.card-image{aspect-ratio:1.4}}
   `],})
 export class MascotasAdoptanteComponent implements OnInit {
+  protected readonly speciesFilters = [
+    { value: 'TODAS', label: 'Todas' },
+    { value: 'PERRO', label: 'Perros' },
+    { value: 'GATO', label: 'Gatos' },
+    { value: 'OTRO', label: 'Otros' }
+  ] as const;
   private readonly api = inject(AnimalsApiService);
   private readonly adoptionApi = inject(AdoptionRequestsApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly session = inject(SessionService);
   protected readonly animals = signal<Animal[]>([]);
+  protected readonly selectedSpecies = signal<'TODAS' | 'PERRO' | 'GATO' | 'OTRO'>('TODAS');
+  protected readonly filteredAnimals = computed(() => {
+    const species = this.selectedSpecies();
+    if (species === 'TODAS') return this.animals();
+    return this.animals().filter(animal => this.categoryForSpecies(animal.especie) === species);
+  });
   protected readonly selectedAnimal = signal<Animal | null>(null);
   protected readonly photos = signal<AnimalPhoto[]>([]);
   protected readonly currentPhotoIndex = signal(0);
@@ -239,6 +266,13 @@ export class MascotasAdoptanteComponent implements OnInit {
           : 'No se pudieron cargar las mascotas. Revisa tu conexión e intenta de nuevo.');
       }
     });
+  }
+
+  private categoryForSpecies(species: string): 'PERRO' | 'GATO' | 'OTRO' {
+    const normalized = species.trim().toLocaleLowerCase('es');
+    if (normalized === 'perro' || normalized === 'perros' || normalized === 'canino') return 'PERRO';
+    if (normalized === 'gato' || normalized === 'gatos' || normalized === 'felino') return 'GATO';
+    return 'OTRO';
   }
 
   protected isFavorite(id: number): boolean {
