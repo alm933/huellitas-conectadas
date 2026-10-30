@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AnimalsApiService } from '../core/animals-api.service';
+import { AdoptionRequestsApiService } from '../core/adoption-requests-api.service';
 import { Animal, AnimalPhoto } from '../core/models';
 import { SessionService } from '../core/session.service';
 import { PetPhotoComponent } from '../shared/pet-photo.component';
@@ -31,8 +32,13 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
               <h1>{{ animal.nombre }}</h1>
               <p class="organization"><span aria-hidden="true">⌖</span> {{ animal.organizacionNombre || 'Organización de adopción' }}</p>
             </div>
-            <span class="ready-badge">Busca un hogar</span>
+            <button class="request-button" type="button" (click)="submitAdoptionRequest()"
+              [disabled]="sendingRequest() || requestSent()">
+              {{ sendingRequest() ? 'Enviando…' : requestSent() ? 'Solicitud enviada' : 'Solicitar adopción' }}
+            </button>
           </div>
+          @if (requestSuccess()) { <p class="request-success" role="status">{{ requestSuccess() }}</p> }
+          @if (requestError()) { <p class="request-error" role="alert">{{ requestError() }}</p> }
           <div class="stats">
             <article class="stat age"><span aria-hidden="true">♙</span><strong>Edad</strong><small>{{ formatAge(animal.edadMeses) }}</small></article>
             <article class="stat sex"><span aria-hidden="true">{{ animal.sexo === 'HEMBRA' ? '♀' : animal.sexo === 'MACHO' ? '♂' : '•' }}</span><strong>Sexo</strong><small>{{ label(animal.sexo) }}</small></article>
@@ -131,6 +137,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     .detail-sheet{position:relative;width:min(100%,900px);min-height:430px;margin:-24px auto 0;padding:24px 26px 32px;border-radius:24px 24px 0 0;background:#fff9f6}.title-line{display:flex;align-items:center;justify-content:space-between;gap:12px}.title-line h1{font-size:27px;letter-spacing:-.6px}.organization{margin:5px 0 0;color:#7d827d;font-size:13px}.ready-badge{flex:none;padding:8px 12px;border-radius:20px;background:#a5ece5;color:#28655d;font-size:12px;font-weight:750}
     .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0 28px}.stat{display:grid;min-height:92px;place-content:center;justify-items:center;gap:3px;border:1px solid transparent;border-radius:12px;text-align:center}.stat>span{font-size:18px;font-weight:750}.stat strong{font-size:12px}.stat small{color:#56645b;font-size:11px}.age{border-color:#f0d2c7;background:#f9e0d8;color:#985a45}.sex{border-color:#d3eeea;background:#e4f4f2;color:#43847b}.size{border-color:#e1dcda;background:#ece7e5;color:#786e68}
     .story h2{margin:0 0 12px;font-size:17px;letter-spacing:-.2px}.story h2 span{color:#d28d5a}.story>p{margin:0;padding:14px;border-radius:12px;background:white;color:#626b64;font-size:13px;line-height:1.65}.story .breed{margin-top:9px;padding:0;background:transparent}.back-link{margin-top:19px;padding:0;border:0;background:none;color:#477b59;font-weight:750}
+    .request-button{min-height:42px;padding:9px 14px;border:0;border-radius:20px;background:#477b59;color:white;font-size:13px;font-weight:700}.request-button:disabled{opacity:.65;cursor:wait}.request-success,.request-error{margin:10px 0;font-size:13px}.request-success{color:#367047}.request-error{color:#a84435}
     @media(max-width:600px){.detail-page::before,.detail-page::after{display:none}.catalog-page{width:calc(100% - 30px);padding:28px 0}.catalog-header{align-items:flex-start}.catalog-header h1{font-size:29px}.logout-button{padding:8px 10px;font-size:12px}.animal-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.card-image{aspect-ratio:4/3}.card-copy{gap:6px;padding:12px}.card-title{font-size:16px}.card-age,.card-organization{font-size:11px}.card-description{font-size:12px}.card-cta{font-size:12px}.detail-hero{width:100%;height:clamp(280px,42vh,480px);max-height:none;aspect-ratio:auto}.detail-sheet{padding:19px 14px 28px}.title-line h1{font-size:23px}.ready-badge{padding:7px 9px;font-size:10px}.stats{gap:6px;margin:19px 0 24px}.stat{min-height:82px}.catalog-footer{margin-top:18px}}
     @media(max-width:380px){.animal-grid{grid-template-columns:1fr}.card-image{aspect-ratio:1.4}}
   `],})
@@ -142,11 +149,12 @@ export class MascotasAdoptanteComponent implements OnInit {
     { value: 'OTRO', label: 'Otros' }
   ] as const;
   private readonly api = inject(AnimalsApiService);
+  private readonly adoptionApi = inject(AdoptionRequestsApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly session = inject(SessionService);
   protected readonly animals = signal<Animal[]>([]);
-  protected readonly selectedSpecies = signal<(typeof this.speciesFilters)[number]['value']>('TODAS');
+  protected readonly selectedSpecies = signal<'TODAS' | 'PERRO' | 'GATO' | 'OTRO'>('TODAS');
   protected readonly filteredAnimals = computed(() => {
     const species = this.selectedSpecies();
     if (species === 'TODAS') return this.animals();
@@ -159,6 +167,10 @@ export class MascotasAdoptanteComponent implements OnInit {
   protected readonly favorites = signal<number[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal('');
+  protected readonly sendingRequest = signal(false);
+  protected readonly requestSent = signal(false);
+  protected readonly requestSuccess = signal('');
+  protected readonly requestError = signal('');
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -208,6 +220,27 @@ export class MascotasAdoptanteComponent implements OnInit {
     void this.router.navigateByUrl('/adoptante');
   }
 
+  protected submitAdoptionRequest(): void {
+    const animal = this.selectedAnimal();
+    if (!animal || this.sendingRequest() || this.requestSent()) return;
+    this.sendingRequest.set(true);
+    this.requestError.set('');
+    this.requestSuccess.set('');
+    this.adoptionApi.create(animal.id, '').subscribe({
+      next: () => {
+        this.sendingRequest.set(false);
+        this.requestSent.set(true);
+        this.requestSuccess.set(`Tu solicitud para ${animal.nombre} fue enviada a la organización.`);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.sendingRequest.set(false);
+        this.requestError.set(error.status === 409
+          ? error.error?.detail ?? error.error?.message ?? 'Ya existe una solicitud pendiente para esta mascota.'
+          : 'No se pudo enviar la solicitud. Intenta nuevamente.');
+      }
+    });
+  }
+
   protected showPreviousPhoto(): void {
     const count = this.photos().length;
     if (count > 1) this.currentPhotoIndex.update(index => (index - 1 + count) % count);
@@ -235,15 +268,15 @@ export class MascotasAdoptanteComponent implements OnInit {
     });
   }
 
-  protected isFavorite(id: number): boolean {
-    return this.favorites().includes(id);
-  }
-
   private categoryForSpecies(species: string): 'PERRO' | 'GATO' | 'OTRO' {
     const normalized = species.trim().toLocaleLowerCase('es');
     if (normalized === 'perro' || normalized === 'perros' || normalized === 'canino') return 'PERRO';
     if (normalized === 'gato' || normalized === 'gatos' || normalized === 'felino') return 'GATO';
     return 'OTRO';
+  }
+
+  protected isFavorite(id: number): boolean {
+    return this.favorites().includes(id);
   }
 
   protected toggleFavorite(id: number): void {
