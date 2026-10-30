@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.hc.application.dto.animal.AnimalPublicacionResponse;
+import com.hc.application.dto.animal.AnimalFotoResponse;
 import com.hc.application.dto.animal.AnimalRequest;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.UsuarioEntity;
@@ -59,6 +60,12 @@ public class AnimalController {
     @GetMapping("/{id}")
     public ResponseEntity<AnimalResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(animalService.buscarPorId(id));
+    }
+
+    @Operation(summary = "Listar fotos de una mascota")
+    @GetMapping("/{id}/fotos")
+    public ResponseEntity<List<AnimalFotoResponse>> listarFotos(@PathVariable Long id) {
+        return ResponseEntity.ok(animalService.listarFotos(id));
     }
 
     @PutMapping("/{id}")

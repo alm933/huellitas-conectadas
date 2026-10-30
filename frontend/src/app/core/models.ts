@@ -63,6 +63,12 @@ export interface Animal {
   organizacionNombre: string;
 }
 
+export interface AnimalPhoto {
+  id: number;
+  url: string;
+  contentType: string;
+}
+
 export interface AnimalRequest {
   nombre: string;
   especie: string;

@@ -2,6 +2,7 @@ package com.hc.application.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import com.hc.application.dto.animal.AnimalRequest;
+import com.hc.application.dto.animal.AnimalFotoResponse;
 import com.hc.application.dto.animal.AnimalResponse;
 import com.hc.application.entity.AnimalEntity;
 import com.hc.application.entity.AnimalFotoEntity;
@@ -27,16 +29,19 @@ public class AnimalService {
     private final AnimalFotoRepository fotoRepository;
     private final OrganizacionRepository organizacionRepository;
     private final GarageStorageService garageStorageService;
+    private final String apiPublicUrl;
 
     public AnimalService(
             AnimalRepository animalRepository,
             AnimalFotoRepository fotoRepository,
             OrganizacionRepository organizacionRepository,
-            GarageStorageService garageStorageService) {
+            GarageStorageService garageStorageService,
+            @Value("${app.api.public-url:https://spring.itechk.us}") String apiPublicUrl) {
         this.animalRepository = animalRepository;
         this.fotoRepository = fotoRepository;
         this.organizacionRepository = organizacionRepository;
         this.garageStorageService = garageStorageService;
+        this.apiPublicUrl = apiPublicUrl.replaceAll("/+$", "");
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +68,16 @@ public class AnimalService {
     @Transactional(readOnly = true)
     public AnimalResponse buscarPorId(Long id) {
         return convertirAResponse(obtenerEntidad(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnimalFotoResponse> listarFotos(Long id) {
+        obtenerEntidad(id);
+        return fotoRepository.findByAnimal_IdOrderByIdAsc(id).stream()
+                .map(foto -> new AnimalFotoResponse(foto.getId(),
+                        apiPublicUrl + "/api/v1/fotos/" + foto.getId(),
+                        foto.getContentType()))
+                .toList();
     }
 
     @Transactional
