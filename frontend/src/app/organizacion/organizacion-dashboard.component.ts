@@ -1,15 +1,17 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AnimalsApiService } from '../core/animals-api.service';
-import { Animal } from '../core/models';
+import { AdoptionRequest, AdoptionRequestStatus, Animal } from '../core/models';
+import { AdoptionRequestsApiService } from '../core/adoption-requests-api.service';
 import { SessionService } from '../core/session.service';
 import { StatusNoticeComponent } from '../shared/status-notice.component';
 import { PetPhotoComponent } from '../shared/pet-photo.component';
 
 @Component({
   selector: 'app-organizacion-dashboard',
-  imports: [RouterLink, StatusNoticeComponent, PetPhotoComponent],
+  imports: [RouterLink, StatusNoticeComponent, PetPhotoComponent, DatePipe],
   template: `
     <main class="organization-page">
       <header class="organization-header">
@@ -43,6 +45,33 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
           }
         </div>
       }
+      <section class="adoption-inbox" aria-labelledby="adoption-inbox-title">
+        <h2 id="adoption-inbox-title">Solicitudes de adopción</h2>
+        @if (requestsError()) { <p class="feedback error" role="alert">{{ requestsError() }}</p> }
+        @if (requestsLoading()) {
+          <p class="feedback">Cargando solicitudes…</p>
+        } @else if (requests().length === 0) {
+          <p class="feedback">Todavía no has recibido solicitudes de adopción.</p>
+        } @else {
+          <div class="adoption-request-list">
+            @for (request of requests(); track request.id) {
+              <article class="adoption-request-card">
+                <div class="request-heading"><h3>{{ request.animalNombre }}</h3><span class="request-status" [class.pending]="request.estado === 'PENDIENTE'">{{ request.estado }}</span></div>
+                <p><strong>{{ request.adoptanteNombre }}</strong> · <a [href]="'mailto:' + request.adoptanteCorreo">{{ request.adoptanteCorreo }}</a></p>
+                <p class="request-message">{{ request.mensaje || 'El adoptante no agregó un mensaje.' }}</p>
+                <small>{{ request.fechaSolicitud | date:'short' }}</small>
+                @if (request.estado === 'PENDIENTE') {
+                  <div class="pet-management-actions">
+                    <button class="btn btn-outline-success" type="button" [disabled]="updatingRequest() === request.id" (click)="updateRequest(request, 'APROBADA')">Aceptar</button>
+                    <button class="btn btn-outline-danger" type="button" [disabled]="updatingRequest() === request.id" (click)="updateRequest(request, 'RECHAZADA')">Rechazar</button>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        }
+        <button class="refresh-list" type="button" (click)="loadRequests()" [disabled]="requestsLoading()">Actualizar solicitudes</button>
+      </section>
       <button class="refresh-list" type="button" (click)="loadAnimals()" [disabled]="loading()">Actualizar lista</button>
     </main>
   `,
@@ -51,13 +80,45 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
 export class OrganizacionDashboardComponent implements OnInit {
   protected readonly session = inject(SessionService);
   private readonly api = inject(AnimalsApiService);
+  private readonly adoptionApi = inject(AdoptionRequestsApiService);
   protected readonly animals = signal<Animal[]>([]);
   protected readonly loading = signal(false);
   protected readonly deleting = signal<number | null>(null);
   protected readonly notice = signal('');
   protected readonly error = signal('');
+  protected readonly requests = signal<AdoptionRequest[]>([]);
+  protected readonly requestsLoading = signal(false);
+  protected readonly requestsError = signal('');
+  protected readonly updatingRequest = signal<number | null>(null);
 
-  ngOnInit(): void { this.loadAnimals(); }
+  ngOnInit(): void { this.loadAnimals(); this.loadRequests(); }
+
+  protected loadRequests(): void {
+    this.requestsLoading.set(true);
+    this.requestsError.set('');
+    this.adoptionApi.forOrganization().subscribe({
+      next: requests => { this.requests.set(requests); this.requestsLoading.set(false); },
+      error: () => {
+        this.requestsLoading.set(false);
+        this.requestsError.set('No se pudieron cargar las solicitudes. Comprueba que Spring esté actualizado y vuelve a intentar.');
+      }
+    });
+  }
+
+  protected updateRequest(request: AdoptionRequest, estado: AdoptionRequestStatus): void {
+    this.updatingRequest.set(request.id);
+    this.requestsError.set('');
+    this.adoptionApi.updateStatus(request.id, estado).subscribe({
+      next: updated => {
+        this.requests.update(items => items.map(item => item.id === updated.id ? updated : item));
+        this.updatingRequest.set(null);
+      },
+      error: () => {
+        this.requestsError.set('No se pudo actualizar la solicitud. Recarga la lista e inténtalo de nuevo.');
+        this.updatingRequest.set(null);
+      }
+    });
+  }
 
   protected loadAnimals(): void {
     this.loading.set(true);
