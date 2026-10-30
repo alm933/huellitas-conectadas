@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Animal, AnimalPublicationResponse, AnimalRequest } from './models';
+import { Animal, AnimalPhoto, AnimalPublicationResponse, AnimalRequest } from './models';
 import { SessionService } from './session.service';
 
 @Injectable({ providedIn: 'root' })
@@ -11,6 +11,7 @@ export class AnimalsApiService {
 
   list() { return this.http.get<Animal[]>(this.base, { headers: this.session.headers() }); }
   get(id: number) { return this.http.get<Animal>(`${this.base}/${id}`, { headers: this.session.headers() }); }
+  photos(id: number) { return this.http.get<AnimalPhoto[]>(`${this.base}/${id}/fotos`, { headers: this.session.headers() }); }
   mine() { return this.http.get<Animal[]>(`${this.base}/mios`, { headers: this.session.headers() }); }
   update(id: number, animal: AnimalRequest) {
     return this.http.put<Animal>(`${this.base}/${id}`, animal, { headers: this.session.headers() });
