@@ -4,13 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter, convertToParamMap } from '@angular/router';
 import { MascotasAdoptanteComponent } from './mascotas-adoptante.component';
 
-describe('Solicitud de adopción', () => {
+describe('Solicitud de adopción', async () => {
   const base = 'https://spring.itechk.us/api/v1';
   const pet = { id: 7, nombre: 'Luna', especie: 'Gato', edadMeses: 12, sexo: 'HEMBRA', tamanio: 'MEDIANO', estado: 'DISPONIBLE' };
   const request = { id: 1, animalId: 7, animalNombre: 'Luna', estado: 'PENDIENTE' };
   let http: HttpTestingController;
 
-  function setup(pending = false, complete = true) {
+  async function setup(pending = false, complete = true, open = true) {
     sessionStorage.clear();
     TestBed.configureTestingModule({
       imports: [MascotasAdoptanteComponent],
@@ -24,6 +24,16 @@ describe('Solicitud de adopción', () => {
     http.expectOne(`${base}/animales/7`).flush(pet);
     http.expectOne(`${base}/animales/7/fotos`).flush([]);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    // jsdom does not implement the browser's native dialog methods.
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
+    dialog.showModal = () => { dialog.open = true; };
+    dialog.close = () => { dialog.open = false; };
+    if (!pending && open) {
+      fixture.nativeElement.querySelector('.title-line .request-button').click();
+      fixture.detectChanges();
+    }
     if (!pending && complete) {
       const selects = fixture.nativeElement.querySelectorAll('.adoption-form select') as NodeListOf<HTMLSelectElement>;
       selects[0].selectedIndex = 1;
@@ -37,35 +47,47 @@ describe('Solicitud de adopción', () => {
 
   afterEach(() => http.verify());
 
-  it('envía una vez y deshabilita el botón después del éxito', () => {
-    const fixture = setup();
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+  it('abre el formulario solo al solicitar y permite cancelarlo sin enviar', async () => {
+    const fixture = await setup(false, false, false);
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
+    expect(dialog.open).toBe(false);
+    fixture.nativeElement.querySelector('.title-line .request-button').click();
+    expect(dialog.open).toBe(true);
+    fixture.nativeElement.querySelector('.dialog-actions button[type="button"]').click();
+    expect(dialog.open).toBe(false);
+    http.expectNone(`${base}/solicitudes-adopcion/animales/7`);
+  });
+
+  it('envía una vez y deshabilita el botón después del éxito', async () => {
+    const fixture = await setup();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
     button.click(); fixture.detectChanges();
     expect(button.disabled).toBe(true);
     const post = http.expectOne(`${base}/solicitudes-adopcion/animales/7`);
     expect(post.request.method).toBe('POST');
     expect(post.request.body).toEqual({ mensaje: '', tieneOtrasMascotas: false, tipoVivienda: 'CASA' });
     post.flush(request); fixture.detectChanges();
-    expect(button.textContent).toContain('Solicitud enviada');
+    expect(fixture.nativeElement.querySelector('.title-line .request-button').textContent).toContain('Solicitud enviada');
+    expect(fixture.nativeElement.querySelector('dialog').open).toBe(false);
     expect(button.disabled).toBe(true);
   });
 
-  it('recupera la solicitud pendiente al recargar', () => {
-    const fixture = setup(true);
+  it('recupera la solicitud pendiente al recargar', async () => {
+    const fixture = await setup(true);
     expect(fixture.nativeElement.querySelector('.request-button').disabled).toBe(true);
   });
 
-  it('exige responder las preguntas antes de enviar', () => {
-    const fixture = setup(false, false);
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+  it('exige responder las preguntas antes de enviar', async () => {
+    const fixture = await setup(false, false);
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
     expect(button.disabled).toBe(true);
     button.click();
     http.expectNone(`${base}/solicitudes-adopcion/animales/7`);
   });
 
-  it('muestra el motivo del servidor y permite reintentar', () => {
-    const fixture = setup();
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+  it('muestra el motivo del servidor y permite reintentar', async () => {
+    const fixture = await setup();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
     button.click(); fixture.detectChanges();
     http.expectOne(`${base}/solicitudes-adopcion/animales/7`).flush(
       { detail: 'Esta mascota ya no está disponible.' }, { status: 409, statusText: 'Conflict' });
@@ -74,9 +96,9 @@ describe('Solicitud de adopción', () => {
     expect(button.disabled).toBe(false);
   });
 
-  it.each([401, 500])('no atribuye automáticamente el error %i a una sesión expirada', status => {
-    const fixture = setup();
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+  it.each([401, 500])('no atribuye automáticamente el error %i a una sesión expirada', async status => {
+    const fixture = await setup();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
     button.click(); fixture.detectChanges();
     http.expectOne(`${base}/solicitudes-adopcion/animales/7`).flush({}, { status, statusText: 'Error' });
     fixture.detectChanges();
