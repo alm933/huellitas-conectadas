@@ -10,7 +10,7 @@ describe('Solicitud de adopción', () => {
   const request = { id: 1, animalId: 7, animalNombre: 'Luna', estado: 'PENDIENTE' };
   let http: HttpTestingController;
 
-  function setup(pending = false) {
+  function setup(pending = false, complete = true) {
     sessionStorage.clear();
     TestBed.configureTestingModule({
       imports: [MascotasAdoptanteComponent],
@@ -24,6 +24,14 @@ describe('Solicitud de adopción', () => {
     http.expectOne(`${base}/animales/7`).flush(pet);
     http.expectOne(`${base}/animales/7/fotos`).flush([]);
     fixture.detectChanges();
+    if (!pending && complete) {
+      const selects = fixture.nativeElement.querySelectorAll('.adoption-form select') as NodeListOf<HTMLSelectElement>;
+      selects[0].selectedIndex = 1;
+      selects[0].dispatchEvent(new Event('change'));
+      selects[1].selectedIndex = 2;
+      selects[1].dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    }
     return fixture;
   }
 
@@ -36,6 +44,7 @@ describe('Solicitud de adopción', () => {
     expect(button.disabled).toBe(true);
     const post = http.expectOne(`${base}/solicitudes-adopcion/animales/7`);
     expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual({ mensaje: '', tieneOtrasMascotas: false, tipoVivienda: 'CASA' });
     post.flush(request); fixture.detectChanges();
     expect(button.textContent).toContain('Solicitud enviada');
     expect(button.disabled).toBe(true);
@@ -46,6 +55,14 @@ describe('Solicitud de adopción', () => {
     expect(fixture.nativeElement.querySelector('.request-button').disabled).toBe(true);
   });
 
+  it('exige responder las preguntas antes de enviar', () => {
+    const fixture = setup(false, false);
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+    expect(button.disabled).toBe(true);
+    button.click();
+    http.expectNone(`${base}/solicitudes-adopcion/animales/7`);
+  });
+
   it('muestra el motivo del servidor y permite reintentar', () => {
     const fixture = setup();
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
@@ -54,6 +71,17 @@ describe('Solicitud de adopción', () => {
       { detail: 'Esta mascota ya no está disponible.' }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('ya no está disponible');
+    expect(button.disabled).toBe(false);
+  });
+
+  it.each([401, 500])('no atribuye automáticamente el error %i a una sesión expirada', status => {
+    const fixture = setup();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.request-button');
+    button.click(); fixture.detectChanges();
+    http.expectOne(`${base}/solicitudes-adopcion/animales/7`).flush({}, { status, statusText: 'Error' });
+    fixture.detectChanges();
+    const message = fixture.nativeElement.querySelector('[role="alert"]').textContent;
+    expect(message).not.toContain('Tu sesión expiró');
     expect(button.disabled).toBe(false);
   });
 });

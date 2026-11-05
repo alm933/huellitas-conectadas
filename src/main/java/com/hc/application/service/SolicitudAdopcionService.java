@@ -58,7 +58,9 @@ public class SolicitudAdopcionService {
         SolicitudAdopcionEntity solicitud = new SolicitudAdopcionEntity();
         solicitud.setAnimal(animal);
         solicitud.setAdoptante(adoptante);
-        solicitud.setMensaje(request == null ? null : limpiarMensaje(request.mensaje()));
+        solicitud.setMensaje(limpiarMensaje(request.mensaje()));
+        solicitud.setTieneOtrasMascotas(request.tieneOtrasMascotas());
+        solicitud.setTipoVivienda(request.tipoVivienda().trim());
         solicitud.setEstado(EstadoSolicitudAdopcion.PENDIENTE);
         return convertir(solicitudRepository.save(solicitud));
     }
@@ -136,6 +138,7 @@ public class SolicitudAdopcionService {
         return new SolicitudAdopcionResponse(
                 solicitud.getId(), solicitud.getAnimal().getId(), solicitud.getAnimal().getNombre(),
                 adoptante.getName() + " " + adoptante.getLastName(), adoptante.getEmail(),
-                solicitud.getMensaje(), solicitud.getEstado(), solicitud.getFechaSolicitud());
+                solicitud.getMensaje(), solicitud.getEstado(), solicitud.getFechaSolicitud(),
+                solicitud.getTieneOtrasMascotas(), solicitud.getTipoVivienda());
     }
 }

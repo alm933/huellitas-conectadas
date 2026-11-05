@@ -33,7 +33,7 @@ public class SolicitudAdopcionController {
     @PostMapping("/animales/{animalId}")
     public ResponseEntity<SolicitudAdopcionResponse> crear(
             @PathVariable Long animalId,
-            @Valid @RequestBody(required = false) SolicitudAdopcionRequest request,
+            @Valid @RequestBody SolicitudAdopcionRequest request,
             @AuthenticationPrincipal UsuarioEntity adoptante) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(animalId, request, adoptante));
     }
