@@ -87,6 +87,9 @@ public class SecurityConfig {
                                 "/api/v1/solicitudes-adopcion/animales/**")
                         .hasAuthority("ADOPTANTE")
                         .requestMatchers(HttpMethod.GET,
+                                "/api/v1/solicitudes-adopcion/mias")
+                        .hasAuthority("ADOPTANTE")
+                        .requestMatchers(HttpMethod.GET,
                                 "/api/v1/solicitudes-adopcion/organizacion")
                         .hasAuthority("ORGANIZACION")
                         .requestMatchers(HttpMethod.PATCH,

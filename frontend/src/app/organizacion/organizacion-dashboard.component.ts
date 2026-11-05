@@ -112,6 +112,8 @@ export class OrganizacionDashboardComponent implements OnInit {
       next: updated => {
         this.requests.update(items => items.map(item => item.id === updated.id ? updated : item));
         this.updatingRequest.set(null);
+        this.loadAnimals();
+        this.loadRequests();
       },
       error: () => {
         this.requestsError.set('No se pudo actualizar la solicitud. Recarga la lista e inténtalo de nuevo.');
@@ -143,6 +145,7 @@ export class OrganizacionDashboardComponent implements OnInit {
         this.animals.update(items => items.filter(item => item.id !== animal.id));
         this.notice.set(`${animal.nombre} fue eliminada.`);
         this.deleting.set(null);
+        this.loadRequests();
       },
       error: () => {
         this.error.set('No se pudo eliminar la publicación. Intenta otra vez.');

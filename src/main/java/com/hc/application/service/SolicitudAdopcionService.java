@@ -22,6 +22,8 @@ import com.hc.application.repository.SolicitudAdopcionRepository;
 
 @Service
 public class SolicitudAdopcionService {
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
 
     private final AnimalRepository animalRepository;
     private final OrganizacionRepository organizacionRepository;
@@ -40,10 +42,13 @@ public class SolicitudAdopcionService {
     public SolicitudAdopcionResponse crear(
             Long animalId, SolicitudAdopcionRequest request, UsuarioEntity adoptante) {
         validarUsuario(adoptante);
-        AnimalEntity animal = animalRepository.findById(animalId)
+        AnimalEntity animal = animalRepository.findByIdForUpdate(animalId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró la mascota."));
         if (animal.getEstado() != EstadoAnimal.DISPONIBLE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Esta mascota ya no está disponible para solicitudes.");
+        }
+        if (!Boolean.TRUE.equals(animal.getOrganizacion().getActivo())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La organización de esta mascota no está activa.");
         }
         if (solicitudRepository.existsByAnimal_IdAndAdoptante_IdAndEstado(
                 animalId, adoptante.getId(), EstadoSolicitudAdopcion.PENDIENTE)) {
@@ -59,6 +64,13 @@ public class SolicitudAdopcionService {
     }
 
     @Transactional(readOnly = true)
+    public List<SolicitudAdopcionResponse> listarPropias(UsuarioEntity usuario) {
+        validarUsuario(usuario);
+        return solicitudRepository.findByAdoptante_IdOrderByFechaSolicitudDesc(usuario.getId())
+                .stream().map(this::convertir).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<SolicitudAdopcionResponse> listarParaOrganizacion(UsuarioEntity usuario) {
         OrganizacionEntity organizacion = obtenerOrganizacion(usuario);
         return solicitudRepository.findByAnimal_Organizacion_IdOrderByFechaSolicitudDesc(organizacion.getId())
@@ -71,6 +83,10 @@ public class SolicitudAdopcionService {
         OrganizacionEntity organizacion = obtenerOrganizacion(usuario);
         SolicitudAdopcionEntity solicitud = solicitudRepository.findById(solicitudId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró la solicitud."));
+        AnimalEntity animal = animalRepository.findByIdForUpdate(solicitud.getAnimal().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró la mascota."));
+        // Reload after acquiring the animal lock to serialize decisions for this pet.
+        entityManager.refresh(solicitud, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         if (!solicitud.getAnimal().getOrganizacion().getId().equals(organizacion.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes gestionar solicitudes de otra organización.");
         }
@@ -81,6 +97,16 @@ public class SolicitudAdopcionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Elige aprobar o rechazar la solicitud.");
         }
         solicitud.setEstado(request.estado());
+        if (request.estado() == EstadoSolicitudAdopcion.APROBADA) {
+            if (animal.getEstado() != EstadoAnimal.DISPONIBLE && animal.getEstado() != EstadoAnimal.EN_PROCESO) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Esta mascota ya no está disponible.");
+            }
+            animal.setEstado(EstadoAnimal.ADOPTADO);
+            for (SolicitudAdopcionEntity otra : solicitudRepository.findByAnimal_IdAndEstado(
+                    animal.getId(), EstadoSolicitudAdopcion.PENDIENTE)) {
+                if (!otra.getId().equals(solicitud.getId())) otra.setEstado(EstadoSolicitudAdopcion.RECHAZADA);
+            }
+        }
         return convertir(solicitudRepository.save(solicitud));
     }
 
