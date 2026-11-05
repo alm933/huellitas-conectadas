@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AnimalsApiService } from '../core/animals-api.service';
@@ -33,33 +33,44 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
               <h1>{{ animal.nombre }}</h1>
               <p class="organization"><span aria-hidden="true">⌖</span> {{ animal.organizacionNombre || 'Organización de adopción' }}</p>
             </div>
-            <button class="request-button" type="button" (click)="submitAdoptionRequest()"
-              [disabled]="sendingRequest() || requestSent() || !tipoVivienda().trim() || tieneOtrasMascotas() === null">
-              {{ sendingRequest() ? 'Enviando…' : requestSent() ? 'Solicitud enviada' : 'Solicitar adopción' }}
+            <button class="request-button" type="button" (click)="adoptionDialog.showModal()"
+              [disabled]="sendingRequest() || requestSent()">
+              {{ requestSent() ? 'Solicitud enviada' : 'Solicitar adopción' }}
             </button>
           </div>
-          @if (!requestSent()) {
+          <dialog #adoptionDialog class="adoption-dialog" aria-labelledby="adoption-title"
+            (cancel)="sendingRequest() && $event.preventDefault()">
+            <form (ngSubmit)="submitAdoptionRequest()">
+              <h2 id="adoption-title">Adoptar a {{ animal.nombre }}</h2>
             <fieldset class="adoption-form" [disabled]="sendingRequest()">
               <legend>Completa tu solicitud</legend>
               <label>Tipo de vivienda
-                <select [ngModel]="tipoVivienda()" (ngModelChange)="tipoVivienda.set($event)" required>
+                <select name="tipoVivienda" [ngModel]="tipoVivienda()" (ngModelChange)="tipoVivienda.set($event)" required>
                   <option value="" disabled>Selecciona una opción</option>
                   <option value="CASA">Casa</option><option value="DEPARTAMENTO">Departamento</option><option value="OTRO">Otro</option>
                 </select>
               </label>
               <label>¿Tienes otras mascotas?
-                <select [ngModel]="tieneOtrasMascotas()" (ngModelChange)="tieneOtrasMascotas.set($event)" required>
+                <select name="tieneOtrasMascotas" [ngModel]="tieneOtrasMascotas()" (ngModelChange)="tieneOtrasMascotas.set($event)" required>
                   <option [ngValue]="null" disabled>Selecciona una opción</option>
                   <option [ngValue]="true">Sí</option><option [ngValue]="false">No</option>
                 </select>
               </label>
               <label>Mensaje para la organización (opcional)
-                <textarea [ngModel]="mensaje()" (ngModelChange)="mensaje.set($event)" maxlength="1000" rows="3"></textarea>
+                <textarea name="mensaje" [ngModel]="mensaje()" (ngModelChange)="mensaje.set($event)" maxlength="1000" rows="3"></textarea>
               </label>
             </fieldset>
-          }
+              @if (requestError()) { <p class="request-error" role="alert">{{ requestError() }}</p> }
+              <div class="dialog-actions">
+                <button type="button" [disabled]="sendingRequest()" (click)="adoptionDialog.close()">Cancelar</button>
+                <button class="request-button send-request-button" type="submit"
+                  [disabled]="sendingRequest() || requestSent() || !tipoVivienda().trim() || tieneOtrasMascotas() === null">
+                  {{ sendingRequest() ? 'Enviando…' : 'Enviar solicitud' }}
+                </button>
+              </div>
+            </form>
+          </dialog>
           @if (requestSuccess()) { <p class="request-success" role="status">{{ requestSuccess() }}</p> }
-          @if (requestError()) { <p class="request-error" role="alert">{{ requestError() }}</p> }
           <div class="stats">
             <article class="stat age"><span aria-hidden="true">♙</span><strong>Edad</strong><small>{{ formatAge(animal.edadMeses) }}</small></article>
             <article class="stat sex"><span aria-hidden="true">{{ animal.sexo === 'HEMBRA' ? '♀' : animal.sexo === 'MACHO' ? '♂' : '•' }}</span><strong>Sexo</strong><small>{{ label(animal.sexo) }}</small></article>
@@ -152,6 +163,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     }
   `,
   styles: [`
+    .adoption-dialog{width:min(520px,calc(100% - 32px));max-height:90dvh;overflow:auto;padding:24px;border:0;border-radius:20px;background:#fff9f6;color:#26352e}.adoption-dialog::backdrop{background:#182c2499}.adoption-dialog h2{margin:0;font-size:23px}.dialog-actions{display:flex;justify-content:flex-end;gap:12px}.dialog-actions>button:first-child{border:0;background:none;color:#477b59}
     .adoption-form{display:grid;gap:12px;margin:20px 0;padding:16px;border:1px solid #d8e2d8;border-radius:12px}.adoption-form legend{font-size:16px}.adoption-form label{display:grid;gap:5px;font-size:14px}.adoption-form select,.adoption-form textarea{width:100%;padding:9px;border:1px solid #b9c8bc;border-radius:8px;font:inherit}
     :host{display:block;min-height:100vh;background:#f7f7f2;color:#26352e;font-family:Inter,"Segoe UI",sans-serif}*{box-sizing:border-box}button{font:inherit;cursor:pointer}
     .catalog-page{width:min(calc(100% - 40px),1100px);margin:auto;padding:42px 0 28px}.catalog-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:20px}
@@ -174,6 +186,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     @media(max-width:380px){.animal-grid{grid-template-columns:1fr}.card-image{aspect-ratio:1.4}}
   `],})
 export class MascotasAdoptanteComponent implements OnInit {
+  private readonly adoptionDialog = viewChild<ElementRef<HTMLDialogElement>>('adoptionDialog');
   protected readonly speciesFilters = [
     { value: 'TODAS', label: 'Todas' },
     { value: 'PERRO', label: 'Perros' },
@@ -270,6 +283,7 @@ export class MascotasAdoptanteComponent implements OnInit {
         this.requests.update(items => [request, ...items]);
         this.sendingRequest.set(false);
         this.requestSent.set(true);
+        this.adoptionDialog()?.nativeElement.close();
         this.requestSuccess.set(`Tu solicitud para ${animal.nombre} fue enviada a la organización.`);
       },
       error: (error: HttpErrorResponse) => {
