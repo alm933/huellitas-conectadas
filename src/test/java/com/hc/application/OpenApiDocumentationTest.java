@@ -55,19 +55,29 @@ class OpenApiDocumentationTest {
         animales.saveAndFlush(animal);
         String path = "/api/v1/solicitudes-adopcion";
         String token = "Bearer " + jwt.generarToken(adopter);
+        String payload = "{\"mensaje\":\"\",\"tieneOtrasMascotas\":false,\"tipoVivienda\":\"CASA\"}";
         mvc.perform(post(path + "/animales/" + animal.getId())).andExpect(status().isUnauthorized());
         mvc.perform(post(path + "/animales/" + animal.getId())
                 .header("Authorization", "Bearer " + jwt.generarToken(owner))).andExpect(status().isForbidden());
         mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token)
-                .contentType("application/json").content("{\"mensaje\":\"\"}"))
+                .contentType("application/json").content(payload))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.estado").value("PENDIENTE"));
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.FALSE,
+                jdbc.queryForObject("select tiene_otras_mascotas from solicitudes_adopcion where animal_id = ? and adoptante_id = ?",
+                        Boolean.class, animal.getId(), adopter.getId()));
+        org.junit.jupiter.api.Assertions.assertEquals("CASA",
+                jdbc.queryForObject("select tipo_vivienda from solicitudes_adopcion where animal_id = ? and adoptante_id = ?",
+                        String.class, animal.getId(), adopter.getId()));
         org.junit.jupiter.api.Assertions.assertEquals("Me interesa adoptar esta mascota.",
                 jdbc.queryForObject("select motivo from solicitudes_adopcion where animal_id = ? and adoptante_id = ?",
                         String.class, animal.getId(), adopter.getId()));
-        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token))
+        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token)
+                .contentType("application/json").content(payload))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").isNotEmpty());
         mvc.perform(post(path + "/animales/" + animal.getId())
-                .header("Authorization", "Bearer " + jwt.generarToken(other))).andExpect(status().isCreated());
+                .header("Authorization", "Bearer " + jwt.generarToken(other))
+                .contentType("application/json").content("{\"tieneOtrasMascotas\":true,\"tipoVivienda\":\"DEPARTAMENTO\"}"))
+                .andExpect(status().isCreated());
         mvc.perform(get(path + "/mias").header("Authorization", token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
         var repo = solicitudRepository;
@@ -82,7 +92,8 @@ class OpenApiDocumentationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("APROBADA"));
         org.junit.jupiter.api.Assertions.assertEquals(com.hc.application.enums.EstadoAnimal.ADOPTADO, animales.findById(animal.getId()).orElseThrow().getEstado());
         org.junit.jupiter.api.Assertions.assertEquals(1, repo.findByAnimal_IdAndEstado(animal.getId(), com.hc.application.enums.EstadoSolicitudAdopcion.RECHAZADA).size());
-        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token))
+        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token)
+                .contentType("application/json").content(payload))
                 .andExpect(status().isConflict());
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/animales/" + animal.getId())
                 .header("Authorization", "Bearer " + jwt.generarToken(owner))).andExpect(status().isNoContent());
@@ -94,6 +105,32 @@ class OpenApiDocumentationTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Test
+    void adoptionRequiresHousingAndAnExplicitPetAnswer() throws Exception {
+        var adopter = usuario(com.hc.application.enums.UsuarioRol.ADOPTANTE);
+        String token = "Bearer " + jwt.generarToken(adopter);
+        for (String invalid : java.util.List.of("{}", "{\"tipoVivienda\":\"CASA\"}",
+                "{\"tieneOtrasMascotas\":false,\"tipoVivienda\":\"   \"}")) {
+            mvc.perform(post("/api/v1/solicitudes-adopcion/animales/2")
+                    .header("Authorization", token).contentType("application/json").content(invalid))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void internalErrorDispatchIsNotReplacedWithUnauthorized() throws Exception {
+        mvc.perform(get("/error").with(request -> {
+                    request.setDispatcherType(jakarta.servlet.DispatcherType.ERROR);
+                    return request;
+                })
+                .requestAttr(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE, 500)
+                .requestAttr(jakarta.servlet.RequestDispatcher.ERROR_REQUEST_URI,
+                        "/api/v1/solicitudes-adopcion/animales/2"))
+                .andExpect(status().isInternalServerError());
+        // A normal request to the same path still requires authentication.
+        mvc.perform(get("/error")).andExpect(status().isUnauthorized());
+    }
 
     @Test
     void documentationDescribesJwtPublicOperationsAndMultipart() throws Exception {

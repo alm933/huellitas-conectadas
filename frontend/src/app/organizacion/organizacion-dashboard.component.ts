@@ -59,6 +59,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
                 <div class="request-heading"><h3>{{ request.animalNombre }}</h3><span class="request-status" [class.pending]="request.estado === 'PENDIENTE'">{{ request.estado }}</span></div>
                 <p><strong>{{ request.adoptanteNombre }}</strong> · <a [href]="'mailto:' + request.adoptanteCorreo">{{ request.adoptanteCorreo }}</a></p>
                 <p class="request-message">{{ request.mensaje || 'El adoptante no agregó un mensaje.' }}</p>
+                <p>Vivienda: {{ request.tipoVivienda }} · Otras mascotas: {{ request.tieneOtrasMascotas ? 'Sí' : 'No' }}</p>
                 <small>{{ request.fechaSolicitud | date:'short' }}</small>
                 @if (request.estado === 'PENDIENTE') {
                   <div class="pet-management-actions">

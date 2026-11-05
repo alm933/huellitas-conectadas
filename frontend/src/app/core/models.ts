@@ -96,4 +96,6 @@ export interface AdoptionRequest {
   mensaje: string | null;
   estado: AdoptionRequestStatus;
   fechaSolicitud: string;
+  tieneOtrasMascotas: boolean;
+  tipoVivienda: string;
 }

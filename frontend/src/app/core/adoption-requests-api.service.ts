@@ -9,8 +9,8 @@ export class AdoptionRequestsApiService {
   private readonly session = inject(SessionService);
   private readonly base = 'https://spring.itechk.us/api/v1/solicitudes-adopcion';
 
-  create(animalId: number, mensaje: string) {
-    return this.http.post<AdoptionRequest>(`${this.base}/animales/${animalId}`, { mensaje },
+  create(animalId: number, mensaje: string, tieneOtrasMascotas: boolean, tipoVivienda: string) {
+    return this.http.post<AdoptionRequest>(`${this.base}/animales/${animalId}`, { mensaje, tieneOtrasMascotas, tipoVivienda },
       { headers: this.session.headers() });
   }
 

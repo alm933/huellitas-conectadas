@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { AnimalsApiService } from '../core/animals-api.service';
 import { AdoptionRequestsApiService } from '../core/adoption-requests-api.service';
 import { AdoptionRequest, Animal, AnimalPhoto } from '../core/models';
@@ -10,7 +11,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
 @Component({
   selector: 'app-mascotas-adoptante',
   standalone: true,
-  imports: [PetPhotoComponent],
+  imports: [PetPhotoComponent, FormsModule],
   template: `
     @if (selectedAnimal(); as animal) {
       <main class="detail-page">
@@ -33,10 +34,30 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
               <p class="organization"><span aria-hidden="true">⌖</span> {{ animal.organizacionNombre || 'Organización de adopción' }}</p>
             </div>
             <button class="request-button" type="button" (click)="submitAdoptionRequest()"
-              [disabled]="sendingRequest() || requestSent()">
+              [disabled]="sendingRequest() || requestSent() || !tipoVivienda().trim() || tieneOtrasMascotas() === null">
               {{ sendingRequest() ? 'Enviando…' : requestSent() ? 'Solicitud enviada' : 'Solicitar adopción' }}
             </button>
           </div>
+          @if (!requestSent()) {
+            <fieldset class="adoption-form" [disabled]="sendingRequest()">
+              <legend>Completa tu solicitud</legend>
+              <label>Tipo de vivienda
+                <select [ngModel]="tipoVivienda()" (ngModelChange)="tipoVivienda.set($event)" required>
+                  <option value="" disabled>Selecciona una opción</option>
+                  <option value="CASA">Casa</option><option value="DEPARTAMENTO">Departamento</option><option value="OTRO">Otro</option>
+                </select>
+              </label>
+              <label>¿Tienes otras mascotas?
+                <select [ngModel]="tieneOtrasMascotas()" (ngModelChange)="tieneOtrasMascotas.set($event)" required>
+                  <option [ngValue]="null" disabled>Selecciona una opción</option>
+                  <option [ngValue]="true">Sí</option><option [ngValue]="false">No</option>
+                </select>
+              </label>
+              <label>Mensaje para la organización (opcional)
+                <textarea [ngModel]="mensaje()" (ngModelChange)="mensaje.set($event)" maxlength="1000" rows="3"></textarea>
+              </label>
+            </fieldset>
+          }
           @if (requestSuccess()) { <p class="request-success" role="status">{{ requestSuccess() }}</p> }
           @if (requestError()) { <p class="request-error" role="alert">{{ requestError() }}</p> }
           <div class="stats">
@@ -131,6 +152,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     }
   `,
   styles: [`
+    .adoption-form{display:grid;gap:12px;margin:20px 0;padding:16px;border:1px solid #d8e2d8;border-radius:12px}.adoption-form legend{font-size:16px}.adoption-form label{display:grid;gap:5px;font-size:14px}.adoption-form select,.adoption-form textarea{width:100%;padding:9px;border:1px solid #b9c8bc;border-radius:8px;font:inherit}
     :host{display:block;min-height:100vh;background:#f7f7f2;color:#26352e;font-family:Inter,"Segoe UI",sans-serif}*{box-sizing:border-box}button{font:inherit;cursor:pointer}
     .catalog-page{width:min(calc(100% - 40px),1100px);margin:auto;padding:42px 0 28px}.catalog-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:20px}
     .species-filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:22px}.species-filters button{padding:9px 15px;border:1px solid #dce5dc;border-radius:22px;background:#fff;color:#42664c;font-size:14px;font-weight:650;transition:background .15s,color .15s,border-color .15s}.species-filters button:hover{border-color:#83a78b}.species-filters button.active{border-color:#477b59;background:#477b59;color:#fff}
@@ -183,6 +205,9 @@ export class MascotasAdoptanteComponent implements OnInit {
   protected readonly requestError = signal('');
   protected readonly requests = signal<AdoptionRequest[]>([]);
   protected readonly historyError = signal('');
+  protected readonly tipoVivienda = signal('');
+  protected readonly tieneOtrasMascotas = signal<boolean | null>(null);
+  protected readonly mensaje = signal('');
 
   ngOnInit(): void {
     this.loadRequests();
@@ -235,11 +260,12 @@ export class MascotasAdoptanteComponent implements OnInit {
 
   protected submitAdoptionRequest(): void {
     const animal = this.selectedAnimal();
-    if (!animal || this.sendingRequest() || this.requestSent()) return;
+    const otras = this.tieneOtrasMascotas();
+    if (!animal || this.sendingRequest() || this.requestSent() || !this.tipoVivienda().trim() || otras === null) return;
     this.sendingRequest.set(true);
     this.requestError.set('');
     this.requestSuccess.set('');
-    this.adoptionApi.create(animal.id, '').subscribe({
+    this.adoptionApi.create(animal.id, this.mensaje().trim(), otras, this.tipoVivienda().trim()).subscribe({
       next: request => {
         this.requests.update(items => [request, ...items]);
         this.sendingRequest.set(false);
@@ -249,7 +275,7 @@ export class MascotasAdoptanteComponent implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.sendingRequest.set(false);
         this.requestError.set(error.error?.detail ?? error.error?.message ?? (
-          error.status === 401 ? 'Tu sesión expiró. Cierra sesión e inicia de nuevo.' :
+          error.status === 401 ? 'El servidor no pudo autenticar esta operación. Si ya iniciaste sesión de nuevo, revisa el registro de Spring.' :
           error.status === 403 ? 'Tu cuenta no tiene permiso para solicitar adopciones.' :
           error.status === 404 ? 'No se encontró la mascota o el servidor aún no tiene habilitadas las solicitudes.' :
           error.status === 409 ? 'Ya existe una solicitud pendiente o la mascota ya no está disponible.' :

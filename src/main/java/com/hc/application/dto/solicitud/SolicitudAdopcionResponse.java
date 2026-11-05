@@ -12,5 +12,7 @@ public record SolicitudAdopcionResponse(
         String adoptanteCorreo,
         String mensaje,
         EstadoSolicitudAdopcion estado,
-        LocalDateTime fechaSolicitud) {
+        LocalDateTime fechaSolicitud,
+        Boolean tieneOtrasMascotas,
+        String tipoVivienda) {
 }

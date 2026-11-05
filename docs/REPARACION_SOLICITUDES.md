@@ -9,6 +9,20 @@ La entidad ahora conserva el nombre original `motivo`; el contrato JSON mantiene
 Cuando no se escribe un mensaje se guarda «Me interesa adoptar esta mascota.».
 No se elimina ninguna columna ni se requiere borrar tablas.
 
+La estructura completa facilitada desde MySQL confirma otros dos campos obligatorios:
+`tiene_otras_mascotas bit(1) NOT NULL` y `tipo_vivienda varchar(30) NOT NULL`.
+El formulario ahora pide ambas respuestas antes de permitir el envío; Spring las valida
+y las guarda explícitamente. No se supone que el adoptante no tiene mascotas ni se inventa
+su vivienda. La organización recibe estas respuestas junto con el mensaje.
+El cuerpo JSON debe incluir `tieneOtrasMascotas` (booleano) y `tipoVivienda` (texto de hasta 30 caracteres).
+Los clientes anteriores que omitan estas respuestas reciben 400, por lo que hay que actualizar
+tanto Angular como Spring.
+
+También se corrige el manejo de errores del contenedor: un despacho interno `ERROR`
+puede devolver el error original sin que Spring Security lo convierta en un 401.
+Las peticiones normales a `/error` y los endpoints de negocio siguen protegidos.
+El mensaje de Angular ya no afirma que cualquier 401 signifique que la sesión expiró.
+
 Además se añade el historial del adoptante (`GET /api/v1/solicitudes-adopcion/mias`),
 se muestran los motivos de error devueltos por el servidor y se restaura el estado
 de solicitud pendiente al entrar de nuevo en el detalle.

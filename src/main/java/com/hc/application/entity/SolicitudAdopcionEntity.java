@@ -44,6 +44,15 @@ public class SolicitudAdopcionEntity {
     @Column(name = "motivo", nullable = false, length = 1000)
     private String mensaje;
 
+    @jakarta.validation.constraints.NotNull
+    @Column(name = "tiene_otras_mascotas", nullable = false)
+    private Boolean tieneOtrasMascotas;
+
+    @jakarta.validation.constraints.NotBlank
+    @Size(max = 30)
+    @Column(name = "tipo_vivienda", nullable = false, length = 30)
+    private String tipoVivienda;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoSolicitudAdopcion estado;
