@@ -3,7 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AnimalsApiService } from '../core/animals-api.service';
 import { AdoptionRequestsApiService } from '../core/adoption-requests-api.service';
-import { Animal, AnimalPhoto } from '../core/models';
+import { AdoptionRequest, Animal, AnimalPhoto } from '../core/models';
 import { SessionService } from '../core/session.service';
 import { PetPhotoComponent } from '../shared/pet-photo.component';
 
@@ -71,6 +71,16 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
               (click)="selectedSpecies.set(filter.value)">{{ filter.label }}</button>
           }
         </nav>
+        <section aria-label="Mis solicitudes de adopción">
+          <h2>Mis solicitudes</h2>
+          @if (historyError()) { <p role="alert">{{ historyError() }}</p> }
+          @for (request of requests(); track request.id) {
+            <p>{{ request.animalNombre }}: <strong>{{ request.estado }}</strong></p>
+          } @empty {
+            @if (!historyError()) { <p>Aún no tienes solicitudes.</p> }
+          }
+          <button type="button" (click)="loadRequests()">Actualizar solicitudes</button>
+        </section>
         @if (error()) {
           <div class="notice error" role="alert">
             <span>{{ error() }}</span>
@@ -171,8 +181,11 @@ export class MascotasAdoptanteComponent implements OnInit {
   protected readonly requestSent = signal(false);
   protected readonly requestSuccess = signal('');
   protected readonly requestError = signal('');
+  protected readonly requests = signal<AdoptionRequest[]>([]);
+  protected readonly historyError = signal('');
 
   ngOnInit(): void {
+    this.loadRequests();
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       const animalId = Number(id);
@@ -227,17 +240,33 @@ export class MascotasAdoptanteComponent implements OnInit {
     this.requestError.set('');
     this.requestSuccess.set('');
     this.adoptionApi.create(animal.id, '').subscribe({
-      next: () => {
+      next: request => {
+        this.requests.update(items => [request, ...items]);
         this.sendingRequest.set(false);
         this.requestSent.set(true);
         this.requestSuccess.set(`Tu solicitud para ${animal.nombre} fue enviada a la organización.`);
       },
       error: (error: HttpErrorResponse) => {
         this.sendingRequest.set(false);
-        this.requestError.set(error.status === 409
-          ? error.error?.detail ?? error.error?.message ?? 'Ya existe una solicitud pendiente para esta mascota.'
-          : 'No se pudo enviar la solicitud. Intenta nuevamente.');
+        this.requestError.set(error.error?.detail ?? error.error?.message ?? (
+          error.status === 401 ? 'Tu sesión expiró. Cierra sesión e inicia de nuevo.' :
+          error.status === 403 ? 'Tu cuenta no tiene permiso para solicitar adopciones.' :
+          error.status === 404 ? 'No se encontró la mascota o el servidor aún no tiene habilitadas las solicitudes.' :
+          error.status === 409 ? 'Ya existe una solicitud pendiente o la mascota ya no está disponible.' :
+          'No se pudo enviar la solicitud. Intenta nuevamente.'));
       }
+    });
+  }
+
+  protected loadRequests(): void {
+    this.historyError.set('');
+    this.adoptionApi.mine().subscribe({
+      next: requests => {
+        this.requests.set(requests);
+        const id = Number(this.route.snapshot.paramMap.get('id'));
+        this.requestSent.set(requests.some(request => request.animalId === id && request.estado === 'PENDIENTE'));
+      },
+      error: () => this.historyError.set('No se pudieron cargar tus solicitudes. Intenta actualizar la lista.')
     });
   }
 

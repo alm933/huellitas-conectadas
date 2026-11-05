@@ -38,6 +38,12 @@ public class SolicitudAdopcionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(animalId, request, adoptante));
     }
 
+    @GetMapping("/mias")
+    public ResponseEntity<List<SolicitudAdopcionResponse>> listarPropias(
+            @AuthenticationPrincipal UsuarioEntity usuario) {
+        return ResponseEntity.ok(service.listarPropias(usuario));
+    }
+
     @GetMapping("/organizacion")
     public ResponseEntity<List<SolicitudAdopcionResponse>> listarParaOrganizacion(
             @AuthenticationPrincipal UsuarioEntity usuario) {

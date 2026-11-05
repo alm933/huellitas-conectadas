@@ -23,6 +23,74 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 @AutoConfigureMockMvc
 class OpenApiDocumentationTest {
+    @Autowired private com.hc.application.repository.UsuarioRepository usuarios;
+    @Autowired private com.hc.application.repository.OrganizacionRepository organizaciones;
+    @Autowired private com.hc.application.repository.AnimalRepository animales;
+    @Autowired private com.hc.application.security.JwtService jwt;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    private com.hc.application.entity.UsuarioEntity usuario(com.hc.application.enums.UsuarioRol rol) {
+        return usuarios.saveAndFlush(com.hc.application.entity.UsuarioEntity.builder()
+                .name("Ana").lastName("Prueba").email(java.util.UUID.randomUUID() + "@example.com")
+                .pass("test-hash").role(rol).build());
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void adoptionLifecycleUsesJwtPreventsDuplicatesAndRemovesPetFromAvailability() throws Exception {
+        var owner = usuario(com.hc.application.enums.UsuarioRol.ORGANIZACION);
+        var adopter = usuario(com.hc.application.enums.UsuarioRol.ADOPTANTE);
+        var other = usuario(com.hc.application.enums.UsuarioRol.ADOPTANTE);
+        var shelter = new com.hc.application.entity.OrganizacionEntity();
+        shelter.setUsuario(owner); shelter.setNombre("Refugio");
+        shelter.setTipo(com.hc.application.enums.TipoOrganizacion.REFUGIO);
+        shelter.setCorreo(java.util.UUID.randomUUID() + "@example.com");
+        shelter.setTelefono("123456789"); shelter.setDireccion("Calle 1"); shelter.setDistrito("Centro");
+        organizaciones.saveAndFlush(shelter);
+        var animal = new com.hc.application.entity.AnimalEntity();
+        animal.setNombre("Luna"); animal.setEspecie("Gato"); animal.setEdadMeses(12);
+        animal.setSexo(com.hc.application.enums.SexoAnimal.HEMBRA);
+        animal.setTamano(com.hc.application.enums.TamanoAnimal.MEDIANO);
+        animal.setDescripcion("Busca hogar"); animal.setOrganizacion(shelter);
+        animales.saveAndFlush(animal);
+        String path = "/api/v1/solicitudes-adopcion";
+        String token = "Bearer " + jwt.generarToken(adopter);
+        mvc.perform(post(path + "/animales/" + animal.getId())).andExpect(status().isUnauthorized());
+        mvc.perform(post(path + "/animales/" + animal.getId())
+                .header("Authorization", "Bearer " + jwt.generarToken(owner))).andExpect(status().isForbidden());
+        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token)
+                .contentType("application/json").content("{\"mensaje\":\"\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.estado").value("PENDIENTE"));
+        org.junit.jupiter.api.Assertions.assertEquals("Me interesa adoptar esta mascota.",
+                jdbc.queryForObject("select motivo from solicitudes_adopcion where animal_id = ? and adoptante_id = ?",
+                        String.class, animal.getId(), adopter.getId()));
+        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").isNotEmpty());
+        mvc.perform(post(path + "/animales/" + animal.getId())
+                .header("Authorization", "Bearer " + jwt.generarToken(other))).andExpect(status().isCreated());
+        mvc.perform(get(path + "/mias").header("Authorization", token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        var repo = solicitudRepository;
+        var requests = repo.findByAnimal_Organizacion_IdOrderByFechaSolicitudDesc(shelter.getId());
+        Long id = requests.stream().filter(s -> s.getAdoptante().getId().equals(adopter.getId())).findFirst().orElseThrow().getId();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path + "/" + id + "/estado")
+                .header("Authorization", token).contentType("application/json").content("{\"estado\":\"APROBADA\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path + "/" + id + "/estado")
+                .header("Authorization", "Bearer " + jwt.generarToken(owner))
+                .contentType("application/json").content("{\"estado\":\"APROBADA\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.estado").value("APROBADA"));
+        org.junit.jupiter.api.Assertions.assertEquals(com.hc.application.enums.EstadoAnimal.ADOPTADO, animales.findById(animal.getId()).orElseThrow().getEstado());
+        org.junit.jupiter.api.Assertions.assertEquals(1, repo.findByAnimal_IdAndEstado(animal.getId(), com.hc.application.enums.EstadoSolicitudAdopcion.RECHAZADA).size());
+        mvc.perform(post(path + "/animales/" + animal.getId()).header("Authorization", token))
+                .andExpect(status().isConflict());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/animales/" + animal.getId())
+                .header("Authorization", "Bearer " + jwt.generarToken(owner))).andExpect(status().isNoContent());
+        animales.flush();
+        org.junit.jupiter.api.Assertions.assertTrue(animales.findById(animal.getId()).isEmpty());
+    }
+
+    @Autowired private com.hc.application.repository.SolicitudAdopcionRepository solicitudRepository;
 
     @Autowired
     private MockMvc mvc;

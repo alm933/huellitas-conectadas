@@ -40,7 +40,8 @@ public class SolicitudAdopcionEntity {
     private UsuarioEntity adoptante;
 
     @Size(max = 1000, message = "El mensaje no puede superar los 1000 caracteres.")
-    @Column(length = 1000)
+    // Preserve the original production schema; the API still calls this field mensaje.
+    @Column(name = "motivo", nullable = false, length = 1000)
     private String mensaje;
 
     @Enumerated(EnumType.STRING)
@@ -52,6 +53,7 @@ public class SolicitudAdopcionEntity {
 
     @PrePersist
     void alCrear() {
+        if (mensaje == null || mensaje.isBlank()) mensaje = "Me interesa adoptar esta mascota.";
         if (estado == null) estado = EstadoSolicitudAdopcion.PENDIENTE;
         if (fechaSolicitud == null) fechaSolicitud = LocalDateTime.now();
     }

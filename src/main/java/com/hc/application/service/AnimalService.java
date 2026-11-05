@@ -26,6 +26,7 @@ import com.hc.application.repository.OrganizacionRepository;
 public class AnimalService {
 
     private final AnimalRepository animalRepository;
+    private final com.hc.application.repository.SolicitudAdopcionRepository solicitudRepository;
     private final AnimalFotoRepository fotoRepository;
     private final OrganizacionRepository organizacionRepository;
     private final GarageStorageService garageStorageService;
@@ -33,11 +34,13 @@ public class AnimalService {
 
     public AnimalService(
             AnimalRepository animalRepository,
+            com.hc.application.repository.SolicitudAdopcionRepository solicitudRepository,
             AnimalFotoRepository fotoRepository,
             OrganizacionRepository organizacionRepository,
             GarageStorageService garageStorageService,
             @Value("${app.api.public-url:https://spring.itechk.us}") String apiPublicUrl) {
         this.animalRepository = animalRepository;
+        this.solicitudRepository = solicitudRepository;
         this.fotoRepository = fotoRepository;
         this.organizacionRepository = organizacionRepository;
         this.garageStorageService = garageStorageService;
@@ -119,6 +122,8 @@ public class AnimalService {
         List<String> claves = fotos.stream().map(AnimalFotoEntity::getGarageKey).toList();
         fotoRepository.deleteAll(fotos);
         fotoRepository.flush();
+        solicitudRepository.deleteByAnimal_Id(id);
+        solicitudRepository.flush();
         animalRepository.delete(animal);
         // Only remove objects when the database commit succeeds.
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

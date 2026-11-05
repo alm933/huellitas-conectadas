@@ -23,9 +23,9 @@ El repositorio contiene un backend REST con Spring Boot y un frontend Angular en
 
 ### Pendiente
 
-- Solicitudes de adopción y su seguimiento.
+- Solicitudes de adopción implementadas: envío, historial del adoptante y aprobación/rechazo por la organización. Al aprobar, la mascota pasa a `ADOPTADO` y se rechazan las otras solicitudes pendientes.
 - Persistencia de favoritos del adoptante; el corazón actual es solo visual y se reinicia al salir de la vista.
-- Galería de fotos en la vista de detalle; por ahora se muestra la foto principal.
+- Galería de fotos implementada en la vista de detalle.
 - Despliegue de producción del frontend. Angular se ejecuta actualmente con su servidor de desarrollo.
 - Pruebas automatizadas de los flujos principales y documentación final de despliegue.
 

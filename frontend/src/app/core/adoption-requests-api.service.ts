@@ -19,6 +19,11 @@ export class AdoptionRequestsApiService {
       { headers: this.session.headers() });
   }
 
+  mine() {
+    return this.http.get<AdoptionRequest[]>(`${this.base}/mias`,
+      { headers: this.session.headers() });
+  }
+
   updateStatus(id: number, estado: AdoptionRequestStatus) {
     return this.http.patch<AdoptionRequest>(`${this.base}/${id}/estado`, { estado },
       { headers: this.session.headers() });
