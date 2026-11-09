@@ -3,6 +3,16 @@ import { Injectable, inject } from '@angular/core';
 import { Animal, AnimalPhoto, AnimalPublicationResponse, AnimalRequest } from './models';
 import { SessionService } from './session.service';
 
+export type CatalogSpecies = 'TODAS' | 'PERRO' | 'GATO' | 'OTRO';
+
+export interface CatalogPage {
+  content: Animal[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AnimalsApiService {
   private readonly http = inject(HttpClient);
@@ -10,6 +20,12 @@ export class AnimalsApiService {
   private readonly base = 'https://spring.itechk.us/api/v1/animales';
 
   list() { return this.http.get<Animal[]>(this.base, { headers: this.session.headers() }); }
+  catalog(page: number, especie: CatalogSpecies) {
+    return this.http.get<CatalogPage>(`${this.base}/catalogo`, {
+      headers: this.session.headers(),
+      params: { page, size: 12, especie }
+    });
+  }
   get(id: number) { return this.http.get<Animal>(`${this.base}/${id}`, { headers: this.session.headers() }); }
   photos(id: number) { return this.http.get<AnimalPhoto[]>(`${this.base}/${id}/fotos`, { headers: this.session.headers() }); }
   mine() { return this.http.get<Animal[]>(`${this.base}/mios`, { headers: this.session.headers() }); }

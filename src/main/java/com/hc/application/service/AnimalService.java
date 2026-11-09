@@ -3,6 +3,9 @@ package com.hc.application.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,7 @@ import com.hc.application.entity.AnimalEntity;
 import com.hc.application.entity.AnimalFotoEntity;
 import com.hc.application.entity.OrganizacionEntity;
 import com.hc.application.entity.UsuarioEntity;
+import com.hc.application.enums.EstadoAnimal;
 import com.hc.application.exception.RecursoNoEncontradoException;
 import com.hc.application.repository.AnimalRepository;
 import com.hc.application.repository.AnimalFotoRepository;
@@ -53,6 +57,13 @@ public class AnimalService {
                 .stream()
                 .map(this::convertirAResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AnimalResponse> listarCatalogo(int page, int size, String especie) {
+        return animalRepository.buscarCatalogo(EstadoAnimal.DISPONIBLE, especie,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")))
+                .map(this::convertirAResponse);
     }
 
     @Transactional(readOnly = true)

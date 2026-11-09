@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.hc.application.dto.animal.AnimalPublicacionResponse;
 import com.hc.application.dto.animal.AnimalFotoResponse;
@@ -49,6 +52,28 @@ public class AnimalController {
     @GetMapping
     public ResponseEntity<List<AnimalResponse>> listar() {
         return ResponseEntity.ok(animalService.listar());
+    }
+
+    public record CatalogoPage(List<AnimalResponse> content, int number, int size,
+            long totalElements, int totalPages) {}
+
+    @Operation(summary = "Consultar el catálogo paginado de mascotas disponibles")
+    @GetMapping("/catalogo")
+    public CatalogoPage listarCatalogo(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "TODAS") String especie) {
+        if (page < 0 || size < 1 || size > 50 || (long) page * size > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Indica una página válida y un tamaño entre 1 y 50.");
+        }
+        if (!List.of("TODAS", "PERRO", "GATO", "OTRO").contains(especie)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filtro de especie no válido.");
+        }
+
+        Page<AnimalResponse> result = animalService.listarCatalogo(page, size, especie);
+        return new CatalogoPage(result.getContent(), result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
     }
 
     @GetMapping("/mios")

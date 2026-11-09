@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AnimalsApiService } from '../core/animals-api.service';
+import { AnimalsApiService, CatalogSpecies } from '../core/animals-api.service';
 import { AdoptionRequestsApiService } from '../core/adoption-requests-api.service';
 import { AdoptionRequest, Animal, AnimalPhoto } from '../core/models';
 import { SessionService } from '../core/session.service';
@@ -100,7 +100,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
           @for (filter of speciesFilters; track filter.value) {
             <button type="button" [class.active]="selectedSpecies() === filter.value"
               [attr.aria-pressed]="selectedSpecies() === filter.value"
-              (click)="selectedSpecies.set(filter.value)">{{ filter.label }}</button>
+              [disabled]="loading()" (click)="selectSpecies(filter.value)">{{ filter.label }}</button>
           }
         </nav>
         <section aria-label="Mis solicitudes de adopción">
@@ -119,27 +119,24 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
             <button type="button" (click)="loadAnimals()">Reintentar</button>
           </div>
         }
-        @if (loading() && animals().length === 0) {
+        @if (loading()) {
           <p class="catalog-state">Cargando mascotas…</p>
         } @else if (error()) {
           <p class="catalog-state">No se pudieron mostrar las mascotas.</p>
         } @else if (animals().length === 0) {
           <section class="catalog-state empty">
             <span aria-hidden="true">🐾</span>
-            <h2>Pronto habrá nuevas historias</h2>
-            <p>Cuando una organización publique mascotas disponibles, aparecerán aquí.</p>
-            <button type="button" (click)="loadAnimals()">Actualizar</button>
-          </section>
-        } @else if (filteredAnimals().length === 0) {
-          <section class="catalog-state empty">
-            <span aria-hidden="true">🐾</span>
-            <h2>No hay mascotas de este tipo</h2>
-            <p>Prueba otro filtro para ver más mascotas disponibles.</p>
-            <button type="button" (click)="selectedSpecies.set('TODAS')">Ver todas</button>
+            @if (selectedSpecies() === 'TODAS') {
+              <h2>Pronto habrá nuevas historias</h2>
+              <p>Cuando una organización publique mascotas disponibles, aparecerán aquí.</p>
+            } @else {
+              <h2>No hay mascotas de este tipo</h2>
+              <button type="button" (click)="selectSpecies('TODAS')">Ver todas</button>
+            }
           </section>
         } @else {
           <section class="animal-grid" aria-label="Mascotas disponibles">
-            @for (item of filteredAnimals(); track item.id) {
+            @for (item of animals(); track item.id) {
               <button class="animal-card" type="button" (click)="openAnimal(item)">
                 <span class="card-image">
                   <app-pet-photo [src]="item.fotoUrl" [name]="item.nombre" />
@@ -156,7 +153,18 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
           </section>
         }
         <footer class="catalog-footer">
-          <span>{{ filteredAnimals().length }} de {{ animals().length }} {{ animals().length === 1 ? 'mascota disponible' : 'mascotas disponibles' }}</span>
+          @if (!loading() && !error()) {
+            <span aria-live="polite">{{ totalElements() }} mascotas disponibles</span>
+          }
+          @if (totalPages() > 1) {
+            <nav class="catalog-pages" aria-label="Páginas del catálogo">
+              <button type="button" (click)="changePage(page() - 1)"
+                [disabled]="loading() || !!error() || page() === 0">Anterior</button>
+              <span aria-live="polite">Página {{ page() + 1 }} de {{ totalPages() }}</span>
+              <button type="button" (click)="changePage(page() + 1)"
+                [disabled]="loading() || !!error() || page() >= totalPages() - 1">Siguiente</button>
+            </nav>
+          }
           <button type="button" (click)="loadAnimals()" [disabled]="loading()">{{ loading() ? 'Actualizando…' : 'Actualizar' }}</button>
         </footer>
       </main>
@@ -174,7 +182,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
     .card-image{position:relative;display:grid;aspect-ratio:4/3;place-items:center;overflow:hidden;background:#e9efe5}.card-heart{position:absolute;top:12px;right:12px;display:grid;width:36px;height:36px;place-items:center;border-radius:50%;background:#fff9f5;color:#a75537;font-size:22px}
     .card-copy{display:grid;gap:8px;padding:16px}.card-title{display:flex;justify-content:space-between;gap:12px;font-size:19px;font-weight:750}.card-age,.card-organization{color:#79847c;font-size:13px;font-weight:450}.card-description{display:-webkit-box;overflow:hidden;color:#647168;font-size:14px;line-height:1.5;-webkit-box-orient:vertical;-webkit-line-clamp:2}.card-cta{margin-top:5px;color:#477b59;font-size:14px;font-weight:750}
     .catalog-state{padding:48px 16px;color:#66746a;text-align:center}.empty{max-width:520px;margin:50px auto;padding:34px;border:1px solid #e6e9e1;border-radius:18px;background:white}.empty>span{font-size:40px}.empty h2{margin:12px 0 8px;color:#26352e}.empty p{line-height:1.6}
-    .catalog-footer{display:flex;justify-content:space-between;align-items:center;margin-top:24px;color:#778179;font-size:13px}.catalog-footer button:disabled{opacity:.65;cursor:wait}.notice{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px;padding:13px 16px;border-radius:12px}.error{background:#fff0ec;color:#873f32}
+    .catalog-pages{display:flex;align-items:center;gap:8px}.catalog-footer{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-top:24px;color:#778179;font-size:13px}.catalog-footer button:disabled{opacity:.65;cursor:wait}.notice{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px;padding:13px 16px;border-radius:12px}.error{background:#fff0ec;color:#873f32}
     .detail-page{position:relative;isolation:isolate;min-height:100vh;background:#fff9f6}.detail-page::before,.detail-page::after{position:fixed;z-index:-1;top:0;bottom:0;width:max(0px,calc((100vw - 900px)/2));background-color:#e9efe5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='86' height='86' viewBox='0 0 86 86'%3E%3Cg fill='%234d385f' fill-opacity='.22'%3E%3Cellipse cx='25' cy='31' rx='5' ry='7' transform='rotate(-24 25 31)'/%3E%3Cellipse cx='36' cy='25' rx='5' ry='7' transform='rotate(-8 36 25)'/%3E%3Cellipse cx='48' cy='27' rx='5' ry='7' transform='rotate(12 48 27)'/%3E%3Cellipse cx='58' cy='36' rx='5' ry='7' transform='rotate(30 58 36)'/%3E%3Cpath d='M26 43c-8 4-12 12-9 19 2 5 8 5 13 3 5-2 8-2 13 1 6 3 12 2 13-4 2-8-4-17-13-21-6-3-11-2-17 2z'/%3E%3C/g%3E%3C/svg%3E");background-size:86px 86px;content:""}.detail-page::before{left:0}.detail-page::after{right:0}.detail-hero{position:relative;width:min(100%,900px);aspect-ratio:1.85;max-height:min(65vh,620px);margin:0 auto;background:#e7eddf}.detail-hero>app-pet-photo{--pet-photo-position:center 38%}
     .round-button{position:absolute;top:16px;display:grid;width:42px;height:42px;place-items:center;border:0;border-radius:50%;background:#fffbf7eb;color:#33423a;font-size:27px;box-shadow:0 2px 8px #0002}.back-button{left:16px}.favorite-button{right:16px;color:#a95539}
     .photo-previous,.photo-next{top:50%;transform:translateY(-50%)}.photo-previous{left:16px}.photo-next{right:16px}.photo-pagination{position:absolute;right:16px;bottom:16px;padding:6px 10px;border-radius:20px;background:#24332ccc;color:white;font-size:12px;font-weight:700}
@@ -199,12 +207,10 @@ export class MascotasAdoptanteComponent implements OnInit {
   private readonly router = inject(Router);
   protected readonly session = inject(SessionService);
   protected readonly animals = signal<Animal[]>([]);
-  protected readonly selectedSpecies = signal<'TODAS' | 'PERRO' | 'GATO' | 'OTRO'>('TODAS');
-  protected readonly filteredAnimals = computed(() => {
-    const species = this.selectedSpecies();
-    if (species === 'TODAS') return this.animals();
-    return this.animals().filter(animal => this.categoryForSpecies(animal.especie) === species);
-  });
+  protected readonly selectedSpecies = signal<CatalogSpecies>('TODAS');
+  protected readonly page = signal(0);
+  protected readonly totalPages = signal(0);
+  protected readonly totalElements = signal(0);
   protected readonly selectedAnimal = signal<Animal | null>(null);
   protected readonly photos = signal<AnimalPhoto[]>([]);
   protected readonly currentPhotoIndex = signal(0);
@@ -320,13 +326,38 @@ export class MascotasAdoptanteComponent implements OnInit {
     if (count > 1) this.currentPhotoIndex.update(index => (index + 1) % count);
   }
 
+  protected selectSpecies(species: CatalogSpecies): void {
+    if (species === this.selectedSpecies() || this.loading()) return;
+    this.selectedSpecies.set(species);
+    this.page.set(0);
+    this.totalPages.set(0);
+    this.loadAnimals();
+  }
+
+  protected changePage(page: number): void {
+    if (this.loading() || page < 0 || page >= this.totalPages()) return;
+    this.page.set(page);
+    this.loadAnimals();
+  }
+
   protected loadAnimals(): void {
+    if (this.loading()) return;
     this.loading.set(true);
     this.error.set('');
-    this.api.list().subscribe({
-      next: animals => {
-        this.animals.set(animals.filter(animal => animal.estado === 'DISPONIBLE'));
+    this.api.catalog(this.page(), this.selectedSpecies()).subscribe({
+      next: result => {
         this.loading.set(false);
+        const lastPage = Math.max(0, result.totalPages - 1);
+        if (result.number > lastPage) {
+          this.page.set(lastPage);
+          this.loadAnimals();
+          return;
+        }
+
+        this.animals.set(result.content);
+        this.page.set(result.number);
+        this.totalPages.set(result.totalPages);
+        this.totalElements.set(result.totalElements);
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
@@ -335,13 +366,6 @@ export class MascotasAdoptanteComponent implements OnInit {
           : 'No se pudieron cargar las mascotas. Revisa tu conexión e intenta de nuevo.');
       }
     });
-  }
-
-  private categoryForSpecies(species: string): 'PERRO' | 'GATO' | 'OTRO' {
-    const normalized = species.trim().toLocaleLowerCase('es');
-    if (normalized === 'perro' || normalized === 'perros' || normalized === 'canino') return 'PERRO';
-    if (normalized === 'gato' || normalized === 'gatos' || normalized === 'felino') return 'GATO';
-    return 'OTRO';
   }
 
   protected isFavorite(id: number): boolean {
