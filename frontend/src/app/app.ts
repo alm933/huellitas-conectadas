@@ -1,9 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { SessionService } from './core/session.service';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
-  template: '<router-outlet />'
+  template: `
+    @if (session.logoutError(); as error) {
+      <p class="alert alert-danger mb-0" role="alert">{{ error }}</p>
+    }
+    <router-outlet />
+  `
 })
-export class App {}
+export class App {
+  protected readonly session = inject(SessionService);
+}
