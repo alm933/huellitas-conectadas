@@ -35,6 +35,48 @@ class OpenApiDocumentationTest {
                 .pass("test-hash").role(rol).build());
     }
 
+    @Autowired private org.springframework.security.crypto.password.PasswordEncoder passwords;
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void browserSessionKeepsJwtInCookieAndProtectsCookieAuthenticatedWrites() throws Exception {
+        var user = usuario(com.hc.application.enums.UsuarioRol.ADOPTANTE);
+        user.setPass(passwords.encode("test-password"));
+        usuarios.saveAndFlush(user);
+        String auth = "/api/v1/auth";
+        String browserHeader = "X-Huellitas-Request";
+        String cookieName = "__Host-huellitas-session";
+        String payload = "{\"email\":\"" + user.getEmail() + "\",\"pass\":\"test-password\"}";
+
+        mvc.perform(post(auth + "/login/browser").contentType("application/json").content(payload))
+                .andExpect(status().isBadRequest());
+        var login = mvc.perform(post(auth + "/login/browser")
+                .header("Origin", "https://hc.itechk.us").header(browserHeader, "1")
+                .contentType("application/json").content(payload))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.role").value("ADOPTANTE"))
+                .andReturn().getResponse();
+        String setCookie = login.getHeader("Set-Cookie");
+        org.junit.jupiter.api.Assertions.assertNotNull(setCookie);
+        org.junit.jupiter.api.Assertions.assertTrue(setCookie.contains("HttpOnly")
+                && setCookie.contains("Secure") && setCookie.contains("SameSite=Lax"));
+        String token = setCookie.substring(cookieName.length() + 1, setCookie.indexOf(';'));
+        var cookie = new jakarta.servlet.http.Cookie(cookieName, token);
+
+        mvc.perform(get(auth + "/session")).andExpect(status().isUnauthorized());
+        mvc.perform(get(auth + "/session").cookie(cookie))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value(user.getEmail()));
+        mvc.perform(get("/api/v1/animales").cookie(cookie)).andExpect(status().isOk());
+        mvc.perform(post(auth + "/logout").cookie(cookie)).andExpect(status().isForbidden());
+        mvc.perform(post(auth + "/logout").cookie(cookie).header(browserHeader, "1")
+                .header("Origin", "https://example.org")).andExpect(status().isForbidden());
+        mvc.perform(post(auth + "/logout").cookie(cookie).header(browserHeader, "1"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
+    }
+
     @Test
     @org.springframework.transaction.annotation.Transactional
     void adoptionLifecycleUsesJwtPreventsDuplicatesAndRemovesPetFromAvailability() throws Exception {

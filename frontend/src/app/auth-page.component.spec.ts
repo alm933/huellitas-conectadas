@@ -46,7 +46,7 @@ describe('Login', () => {
     fill('#login-email', 'ana@example.com');
     fill('#login-password', '');
     expect(submitButton().disabled).toBe(true);
-    http.expectNone('https://spring.itechk.us/api/v1/auth/login');
+    http.expectNone('https://spring.itechk.us/api/v1/auth/login/browser');
   });
 
   it.each([401, 403])('shows a contrasting alert for rejected credentials (HTTP %i)', status => {
@@ -58,7 +58,7 @@ describe('Login', () => {
     expect(submitButton().disabled).toBe(true);
     expect(submitButton().getAttribute('aria-busy')).toBe('true');
 
-    http.expectOne('https://spring.itechk.us/api/v1/auth/login')
+    http.expectOne('https://spring.itechk.us/api/v1/auth/login/browser')
       .flush({}, { status, statusText: 'Unauthorized' });
     fixture.detectChanges();
 
@@ -74,7 +74,7 @@ describe('Login', () => {
     fill('#login-password', 'clave-de-prueba');
     fixture.nativeElement.querySelector('form').dispatchEvent(
       new Event('submit', { bubbles: true, cancelable: true }));
-    http.expectOne('https://spring.itechk.us/api/v1/auth/login')
+    http.expectOne('https://spring.itechk.us/api/v1/auth/login/browser')
       .flush({}, { status: 401, statusText: 'Unauthorized' });
     fixture.detectChanges();
 

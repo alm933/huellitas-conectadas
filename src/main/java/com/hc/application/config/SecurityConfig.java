@@ -42,7 +42,8 @@ public class SecurityConfig {
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(
-                List.of("Authorization", "Content-Type"));
+                List.of("Authorization", "Content-Type", JwtAuthenticationFilter.BROWSER_HEADER));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
@@ -65,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml")
                         .permitAll()
+                        .requestMatchers("/api/v1/auth/session").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH,
                                 "/api/v1/organizaciones/*/activo")

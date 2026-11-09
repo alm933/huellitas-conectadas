@@ -1,50 +1,51 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { catchError, firstValueFrom, of } from 'rxjs';
+import { AuthApiService } from './auth-api.service';
 import { LoginResponse, UserRole } from './models';
-
-const KEY = 'huellitas.session';
-
-function readSession(): LoginResponse | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = window.sessionStorage.getItem(KEY);
-    if (!stored) return null;
-    const session: Partial<LoginResponse> = JSON.parse(stored);
-    if (typeof session.token === 'string' && session.token.length > 0
-      && typeof session.email === 'string'
-      && ['ADMIN', 'ORGANIZACION', 'ADOPTANTE'].includes(session.role ?? '')) {
-      return session as LoginResponse;
-    }
-    window.sessionStorage.removeItem(KEY);
-  } catch {
-    // Session storage can be disabled by the browser.
-  }
-  return null;
-}
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly router = inject(Router);
-  readonly current = signal<LoginResponse | null>(readSession());
+  private readonly authApi = inject(AuthApiService);
+  readonly current = signal<LoginResponse | null>(null);
+  readonly logoutError = signal('');
+  private loggingOut = false;
+
+  async restore(): Promise<void> {
+    try {
+      window.sessionStorage.removeItem('huellitas.session');
+    } catch {
+      // Storage may be disabled in the browser.
+    }
+    const session = await firstValueFrom(this.authApi.session().pipe(catchError(() => of(null))));
+    this.current.set(session);
+  }
 
   login(session: LoginResponse): void {
     this.current.set(session);
-    try { window.sessionStorage.setItem(KEY, JSON.stringify(session)); } catch { /* in-memory session */ }
+    this.logoutError.set('');
     void this.router.navigateByUrl(this.homeFor(session.role));
   }
 
   logout(): void {
-    this.current.set(null);
-    try { window.sessionStorage.removeItem(KEY); } catch { /* in-memory logout */ }
-    void this.router.navigateByUrl('/login');
+    if (this.loggingOut) return;
+    this.loggingOut = true;
+    this.logoutError.set('');
+    this.authApi.logout().subscribe({
+      next: () => {
+        this.loggingOut = false;
+        this.current.set(null);
+        void this.router.navigateByUrl('/login');
+      },
+      error: () => {
+        this.loggingOut = false;
+        this.logoutError.set('No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo.');
+      }
+    });
   }
 
   homeFor(role: UserRole): string {
     return role === 'ADMIN' ? '/admin' : role === 'ORGANIZACION' ? '/organizacion' : '/adoptante';
-  }
-
-  headers(): HttpHeaders {
-    return new HttpHeaders({ Authorization: `Bearer ${this.current()?.token ?? ''}` });
   }
 }

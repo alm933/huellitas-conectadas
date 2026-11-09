@@ -2,7 +2,6 @@ export type UserRole = 'ADMIN' | 'ORGANIZACION' | 'ADOPTANTE';
 export type RegistrationType = 'ADOPTANTE' | 'ORGANIZACION';
 
 export interface LoginResponse {
-  token: string;
   email: string;
   role: UserRole;
 }
