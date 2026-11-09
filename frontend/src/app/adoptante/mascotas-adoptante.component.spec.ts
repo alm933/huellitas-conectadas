@@ -107,3 +107,38 @@ describe('Solicitud de adopción', async () => {
     expect(button.disabled).toBe(false);
   });
 });
+
+describe('Paginación del catálogo del adoptante', () => {
+  it('pide la siguiente página y reinicia el índice al cambiar de especie', () => {
+    TestBed.configureTestingModule({
+      imports: [MascotasAdoptanteComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+    });
+    const fixture = TestBed.createComponent(MascotasAdoptanteComponent);
+    const http = TestBed.inject(HttpTestingController);
+    const base = 'https://spring.itechk.us/api/v1';
+    const respond = (number: number, especie: string, totalPages: number) => {
+      const request = http.expectOne(req => req.url === base + '/animales/catalogo'
+        && req.params.get('page') === String(number) && req.params.get('especie') === especie);
+      request.flush({ content: [], number, size: 12, totalElements: totalPages * 12, totalPages });
+      fixture.detectChanges();
+    };
+
+    fixture.detectChanges();
+    http.expectOne(base + '/solicitudes-adopcion/mias').flush([]);
+    respond(0, 'TODAS', 2);
+    const screen: HTMLElement = fixture.nativeElement;
+    const pageButtons = () => screen.querySelectorAll<HTMLButtonElement>('.catalog-pages button');
+    expect(pageButtons()[0].disabled).toBe(true);
+    pageButtons()[1].click();
+    respond(1, 'TODAS', 2);
+    expect(screen.querySelector('.catalog-pages')?.textContent).toContain('2 de 2');
+    expect(pageButtons()[1].disabled).toBe(true);
+
+    const cats = Array.from(screen.querySelectorAll('button')).find(button => button.textContent.trim() === 'Gatos');
+    cats!.click();
+    respond(0, 'GATO', 0);
+    expect(screen.querySelector('.catalog-pages')).toBeNull();
+    http.verify();
+  });
+});

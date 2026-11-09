@@ -55,6 +55,21 @@ class OpenApiDocumentationTest {
         animales.saveAndFlush(animal);
         String path = "/api/v1/solicitudes-adopcion";
         String token = "Bearer " + jwt.generarToken(adopter);
+        String catalogo = "/api/v1/animales/catalogo";
+        mvc.perform(get(catalogo)).andExpect(status().isUnauthorized());
+        mvc.perform(get(catalogo).header("Authorization", token)
+                .param("size", "1").param("especie", "GATO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("Luna"))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get(catalogo).header("Authorization", token)
+                .param("page", "1").param("size", "1").param("especie", "GATO"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty());
+        mvc.perform(get(catalogo).header("Authorization", token).param("especie", "PERRO"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get(catalogo).header("Authorization", token).param("size", "51"))
+                .andExpect(status().isBadRequest());
         String payload = "{\"mensaje\":\"\",\"tieneOtrasMascotas\":false,\"tipoVivienda\":\"CASA\"}";
         mvc.perform(post(path + "/animales/" + animal.getId())).andExpect(status().isUnauthorized());
         mvc.perform(post(path + "/animales/" + animal.getId())
