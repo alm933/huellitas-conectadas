@@ -39,7 +39,6 @@
         <input type="search" placeholder="Nombre, raza u organización" [value]="query()"
           (input)="query.set($any($event.target).value)" aria-label="Buscar mascotas por nombre, raza u organización" />
       </label>
-      <div class="search-note">Explora publicaciones reales de organizaciones colaboradoras.</div>
       <button class="primary-button search-button" type="submit">Buscar <span aria-hidden="true">⌕</span></button>
     </form>
 
