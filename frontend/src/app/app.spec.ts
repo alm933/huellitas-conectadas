@@ -16,8 +16,10 @@ describe('App', () => {
 
   it('shows the public welcome page to visitors at the root route', async () => {
     const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/');
+    fixture.detectChanges();
     const request = TestBed.inject(HttpTestingController)
       .expectOne(req => req.url.endsWith('/api/v1/animales/publicos/catalogo'));
     request.flush({ content: [], number: 0, size: 6, totalElements: 0, totalPages: 0 });
