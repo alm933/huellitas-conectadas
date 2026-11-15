@@ -29,7 +29,7 @@ describe('App', () => {
     expect(router.url).toBe('/');
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Un hogar cambia');
-    expect(compiled.querySelector('a[href="#adoptar"]')?.textContent).toContain('Explorar mascotas');
+    expect(compiled.querySelector('.hero-actions a.primary-button')?.textContent).toContain('Explorar mascotas');
   });
 
   it('blocks the organization panel without an organization session', async () => {
