@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/v1/auth/session").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/animales/publicos/catalogo").permitAll()
                         .requestMatchers(HttpMethod.PATCH,
                                 "/api/v1/organizaciones/*/activo")
                         .hasAuthority("ADMIN")
