@@ -63,6 +63,23 @@ public class AnimalController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "TODAS") String especie) {
+        validarParametrosCatalogo(page, size, especie);
+        Page<AnimalResponse> result = animalService.listarCatalogo(page, size, especie);
+        return convertirPagina(result);
+    }
+
+    @Operation(summary = "Consultar una vista previa pública de mascotas disponibles")
+    @GetMapping("/publicos/catalogo")
+    public CatalogoPage listarCatalogoPublico(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(defaultValue = "TODAS") String especie) {
+        validarParametrosCatalogo(page, size, especie);
+        Page<AnimalResponse> result = animalService.listarCatalogo(page, size, especie);
+        return convertirPagina(result);
+    }
+
+    private void validarParametrosCatalogo(int page, int size, String especie) {
         if (page < 0 || size < 1 || size > 50 || (long) page * size > Integer.MAX_VALUE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Indica una página válida y un tamaño entre 1 y 50.");
@@ -70,8 +87,9 @@ public class AnimalController {
         if (!List.of("TODAS", "PERRO", "GATO", "OTRO").contains(especie)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filtro de especie no válido.");
         }
+    }
 
-        Page<AnimalResponse> result = animalService.listarCatalogo(page, size, especie);
+    private CatalogoPage convertirPagina(Page<AnimalResponse> result) {
         return new CatalogoPage(result.getContent(), result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages());
     }
