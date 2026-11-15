@@ -1,0 +1,126 @@
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" routerLink="/" aria-label="Huellitas Conectadas, inicio">
+      <span class="brand-mark" aria-hidden="true">🐾</span>
+      <span>Huellitas <strong>Conectadas</strong></span>
+    </a>
+    <nav class="main-nav" aria-label="Navegación principal">
+      <a href="#adoptar">Adoptar</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#refugios">Refugios</a>
+      <a class="login-link" [routerLink]="accountLink()">{{ accountLabel() }}</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-width">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="eyebrow-dot"></span> ADOPTA CON EL CORAZÓN</span>
+        <h1 id="hero-title">Un hogar cambia<br />dos vidas.</h1>
+        <p>Encuentra a tu próximo compañero entre mascotas que esperan una familia. Cada perfil cuenta una historia que merece un final feliz.</p>
+        <div class="hero-actions">
+          <a class="primary-button" href="#adoptar">Explorar mascotas <span aria-hidden="true">→</span></a>
+          <a class="text-link" href="#como-funciona">Conoce el proceso</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Ilustración de un perro esperando un hogar">
+        <span class="sun" aria-hidden="true"></span>
+        <span class="hill" aria-hidden="true"></span>
+        <span class="art-note"><span aria-hidden="true">✨</span> Hay una huellita para ti</span>
+        <span class="hero-dog" aria-hidden="true">🐕</span>
+      </div>
+    </section>
+
+    <form class="search-box" role="search" (submit)="$event.preventDefault(); scrollToPets()">
+      <label class="search-field">
+        <span>Estoy buscando</span>
+        <input type="search" placeholder="Nombre, raza u organización" [value]="query()"
+          (input)="query.set($any($event.target).value)" aria-label="Buscar mascotas por nombre, raza u organización" />
+      </label>
+      <div class="search-note">Explora publicaciones reales de organizaciones colaboradoras.</div>
+      <button class="primary-button search-button" type="submit">Buscar <span aria-hidden="true">⌕</span></button>
+    </form>
+
+    <section id="adoptar" class="pets-section" aria-labelledby="pets-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="pets-title">Conoce a tus nuevos amigos</h2>
+          <p>Ellos están listos para encontrar un hogar.</p>
+        </div>
+        <a class="all-link" [routerLink]="accountLink()">Ver catálogo <span aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="filters" aria-label="Filtrar mascotas por especie">
+        @for (filter of speciesFilters; track filter.value) {
+          <button class="filter-chip" type="button" [class.active]="selectedSpecies() === filter.value"
+            [attr.aria-pressed]="selectedSpecies() === filter.value" [disabled]="loading()"
+            (click)="selectSpecies(filter.value)">{{ filter.label }}</button>
+        }
+      </div>
+
+      @if (error()) {
+        <div class="state-card error-state" role="alert">
+          <p>{{ error() }}</p>
+          <button class="outline-button" type="button" (click)="loadAnimals()">Intentar de nuevo</button>
+        </div>
+      } @else if (loading()) {
+        <p class="state-message" role="status">Buscando mascotas disponibles…</p>
+      } @else if (visibleAnimals().length === 0) {
+        <div class="state-card" role="status">
+          <span class="state-paw" aria-hidden="true">🐾</span>
+          <h3>{{ animals().length ? 'No encontramos coincidencias' : 'Pronto habrá nuevas historias' }}</h3>
+          <p>{{ animals().length ? 'Prueba otro nombre, raza u organización.' : 'Las mascotas disponibles aparecerán aquí cuando las organizaciones las publiquen.' }}</p>
+        </div>
+      } @else {
+        <div class="pet-grid">
+          @for (animal of visibleAnimals(); track animal.id) {
+            <article class="pet-card">
+              <a class="pet-photo" [routerLink]="['/adoptante/mascotas', animal.id]" [attr.aria-label]="'Conoce a ' + animal.nombre">
+                <app-pet-photo [src]="animal.fotoUrl" [name]="animal.nombre" />
+                <span class="available-badge">✓ Busca un hogar</span>
+              </a>
+              <div class="pet-body">
+                <div class="pet-title-row">
+                  <h3>{{ animal.nombre }}</h3>
+                  <span class="pet-age">{{ formatAge(animal.edadMeses) }}</span>
+                </div>
+                <p class="pet-meta">{{ label(animal.sexo) }} <span aria-hidden="true">·</span> {{ animal.especie }}@if (animal.raza) { <span aria-hidden="true">·</span> {{ animal.raza }} }</p>
+                <div class="pet-footer">
+                  <span>{{ animal.organizacionNombre || 'Organización colaboradora' }}</span>
+                  <a [routerLink]="['/adoptante/mascotas', animal.id]">Ver perfil <span aria-hidden="true">→</span></a>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+      <p class="catalog-hint">¿Quieres ver todas las publicaciones y enviar una solicitud? <a [routerLink]="accountLink()">Ingresa o crea tu cuenta</a>.</p>
+    </section>
+
+    <section id="como-funciona" class="how-section" aria-labelledby="how-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="how-title">Adoptar es más fácil en compañía</h2>
+          <p>Un proceso sencillo, acompañado por la organización responsable.</p>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><h3>Encuentra</h3><p>Explora mascotas disponibles y conoce su historia.</p></article>
+        <article class="step-card"><span class="step-number">02</span><h3>Conecta</h3><p>Envía tu solicitud a la organización que cuida de ella.</p></article>
+        <article class="step-card"><span class="step-number">03</span><h3>Conversa</h3><p>La organización se pondrá en contacto para continuar el proceso.</p></article>
+      </div>
+    </section>
+
+    <section id="refugios" class="shelter-banner" aria-labelledby="shelter-title">
+      <div><p class="eyebrow">PARA ORGANIZACIONES</p><h2 id="shelter-title">Cada publicación puede acercar una familia.</h2><p>Registra tu organización y comparte las historias de las mascotas que buscan hogar.</p></div>
+      <a class="primary-button light-button" routerLink="/registro">Registrar organización <span aria-hidden="true">→</span></a>
+    </section>
+
+    <footer class="site-footer">
+      <span>Hecho con cariño para conectar mascotas y familias 💚</span>
+      <span>Huellitas Conectadas · Lima, Perú</span>
+    </footer>
+  </div>
+</main>
