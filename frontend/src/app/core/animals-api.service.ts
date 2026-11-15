@@ -23,6 +23,11 @@ export class AnimalsApiService {
       params: { page, size: 12, especie }
     });
   }
+  publicCatalog(especie: CatalogSpecies) {
+    return this.http.get<CatalogPage>(`${this.base}/publicos/catalogo`, {
+      params: { page: 0, size: 6, especie }
+    });
+  }
   get(id: number) { return this.http.get<Animal>(`${this.base}/${id}`); }
   photos(id: number) { return this.http.get<AnimalPhoto[]>(`${this.base}/${id}/fotos`); }
   mine() { return this.http.get<Animal[]>(`${this.base}/mios`); }

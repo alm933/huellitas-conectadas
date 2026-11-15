@@ -8,6 +8,7 @@ import { MascotasAdoptanteComponent } from './adoptante/mascotas-adoptante.compo
 import { OrganizacionDashboardComponent } from './organizacion/organizacion-dashboard.component';
 import { PublicarMascotaComponent } from './organizacion/publicar-mascota.component';
 import { EditarMascotaComponent } from './organizacion/editar-mascota.component';
+import { LandingPageComponent } from './home/landing-page.component';
 
 const onlyRole = (role: UserRole): CanActivateFn => () => {
   const session = inject(SessionService);
@@ -22,10 +23,7 @@ const onlyGuests: CanActivateFn = () => {
 };
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: () => {
-    const session = inject(SessionService);
-    return session.current() ? session.homeFor(session.current()!.role) : '/login';
-  } },
+  { path: '', pathMatch: 'full', component: LandingPageComponent },
   { path: 'login', component: AuthPageComponent, canActivate: [onlyGuests] },
   { path: 'registro', component: AuthPageComponent, canActivate: [onlyGuests] },
   { path: 'admin', component: AdminPageComponent, canActivate: [onlyRole('ADMIN')] },
