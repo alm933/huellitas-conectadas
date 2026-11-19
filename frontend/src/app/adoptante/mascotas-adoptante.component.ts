@@ -109,7 +109,7 @@ import { PetPhotoComponent } from '../shared/pet-photo.component';
             <span class="request-count" aria-label="Cantidad de solicitudes">{{ requests().length }}</span>
           </summary>
           <div class="request-history-content">
-            <button class="request-refresh" type="button" (click)="loadRequests()">
+            <button class="request-refresh catalog-next" type="button" (click)="loadRequests()">
               Actualizar solicitudes
             </button>
             @if (historyError()) { <p role="alert">{{ historyError() }}</p> }
