@@ -17,7 +17,6 @@ export class LandingPageComponent implements OnInit {
   protected readonly session = inject(SessionService);
   protected readonly animals = signal<Animal[]>([]);
   protected readonly selectedSpecies = signal<CatalogSpecies>('TODAS');
-  protected readonly query = signal('');
   protected readonly loading = signal(false);
   protected readonly error = signal('');
   protected readonly speciesFilters = [
@@ -31,17 +30,20 @@ export class LandingPageComponent implements OnInit {
     return current ? this.session.homeFor(current.role) : '/login';
   });
   protected readonly accountLabel = computed(() => this.session.current() ? 'Mi panel' : 'Iniciar sesión');
-  protected readonly visibleAnimals = computed(() => {
-    const query = this.query().trim().toLocaleLowerCase();
-    if (!query) return this.animals();
-    return this.animals().filter(animal =>
-      [animal.nombre, animal.raza ?? '', animal.especie, animal.organizacionNombre]
-        .some(value => value.toLocaleLowerCase().includes(query))
-    );
-  });
-
   ngOnInit(): void {
     this.loadAnimals();
+  }
+
+  protected petProfileLink(animalId: number): string | (string | number)[] {
+    const current = this.session.current();
+    if (current?.role === 'ADOPTANTE') return ['/adoptante/mascotas', animalId];
+    return current ? this.accountLink() : '/registro';
+  }
+
+  protected petProfileLabel(): string {
+    const current = this.session.current();
+    return current?.role === 'ADOPTANTE' ? 'Ver perfil'
+      : current ? 'Ir a mi panel' : 'Regístrate para ver perfil';
   }
 
   protected selectSpecies(species: CatalogSpecies): void {
@@ -64,10 +66,6 @@ export class LandingPageComponent implements OnInit {
         this.error.set('No se pudieron cargar las mascotas. Revisa tu conexión e inténtalo de nuevo.');
       }
     });
-  }
-
-  protected scrollToPets(): void {
-    document.getElementById('adoptar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   protected formatAge(months: number): string {

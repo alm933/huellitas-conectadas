@@ -2,7 +2,7 @@
   <div class="header-inner">
     <a class="brand" routerLink="/" aria-label="Huellitas Conectadas, inicio">
       <span class="brand-mark" aria-hidden="true">🐾</span>
-      <span>Huellitas <strong>Conectadas</strong></span>
+      <span class="brand-copy"><span class="brand-name">Huellitas</span><span class="brand-tagline">Conectadas</span></span>
     </a>
     <nav class="main-nav" aria-label="Navegación principal">
       <a href="#adoptar">Adoptar</a>
@@ -33,15 +33,6 @@
       </div>
     </section>
 
-    <form class="search-box" role="search" (submit)="$event.preventDefault(); scrollToPets()">
-      <label class="search-field">
-        <span>Estoy buscando</span>
-        <input type="search" placeholder="Nombre, raza u organización" [value]="query()"
-          (input)="query.set($any($event.target).value)" aria-label="Buscar mascotas por nombre, raza u organización" />
-      </label>
-      <div class="search-note">Explora publicaciones reales de organizaciones colaboradoras.</div>
-      <button class="primary-button search-button" type="submit">Buscar <span aria-hidden="true">⌕</span></button>
-    </form>
 
     <section id="adoptar" class="pets-section" aria-labelledby="pets-title">
       <div class="section-heading">
@@ -67,7 +58,7 @@
         </div>
       } @else if (loading()) {
         <p class="state-message" role="status">Buscando mascotas disponibles…</p>
-      } @else if (visibleAnimals().length === 0) {
+      } @else if (animals().length === 0) {
         <div class="state-card" role="status">
           <span class="state-paw" aria-hidden="true">🐾</span>
           <h3>{{ animals().length ? 'No encontramos coincidencias' : 'Pronto habrá nuevas historias' }}</h3>
@@ -75,9 +66,9 @@
         </div>
       } @else {
         <div class="pet-grid">
-          @for (animal of visibleAnimals(); track animal.id) {
+          @for (animal of animals(); track animal.id) {
             <article class="pet-card">
-              <a class="pet-photo" [routerLink]="['/adoptante/mascotas', animal.id]" [attr.aria-label]="'Conoce a ' + animal.nombre">
+              <a class="pet-photo" [routerLink]="petProfileLink(animal.id)" [attr.aria-label]="'Conoce a ' + animal.nombre">
                 <app-pet-photo [src]="animal.fotoUrl" [name]="animal.nombre" />
                 <span class="available-badge">✓ Busca un hogar</span>
               </a>
@@ -89,7 +80,7 @@
                 <p class="pet-meta">{{ label(animal.sexo) }} <span aria-hidden="true">·</span> {{ animal.especie }}@if (animal.raza) { <span aria-hidden="true">·</span> {{ animal.raza }} }</p>
                 <div class="pet-footer">
                   <span>{{ animal.organizacionNombre || 'Organización colaboradora' }}</span>
-                  <a [routerLink]="['/adoptante/mascotas', animal.id]">Ver perfil <span aria-hidden="true">→</span></a>
+                  <a [routerLink]="petProfileLink(animal.id)">{{ petProfileLabel() }} <span aria-hidden="true">→</span></a>
                 </div>
               </div>
             </article>

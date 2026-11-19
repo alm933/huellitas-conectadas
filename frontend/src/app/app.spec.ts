@@ -22,7 +22,7 @@ describe('App', () => {
     fixture.detectChanges();
     const request = TestBed.inject(HttpTestingController)
       .expectOne(req => req.url.endsWith('/api/v1/animales/publicos/catalogo'));
-    request.flush({ content: [], number: 0, size: 6, totalElements: 0, totalPages: 0 });
+    request.flush({ content: [{ id: 1, nombre: 'Luna', especie: 'PERRO', raza: null, edadMeses: 12, sexo: 'HEMBRA', tamanio: 'MEDIANO', descripcion: null, fotoUrl: null, estado: 'DISPONIBLE', organizacionId: 2, organizacionNombre: 'Refugio de prueba' }], number: 0, size: 6, totalElements: 1, totalPages: 1 });
     await fixture.whenStable();
     fixture.detectChanges();
 
