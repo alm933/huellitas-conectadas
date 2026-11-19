@@ -77,6 +77,24 @@ describe('Solicitud de adopción', async () => {
     expect(fixture.nativeElement.querySelector('.request-button').disabled).toBe(true);
   });
 
+  it('despliega el resumen de solicitudes y usa el estilo verde de paginación al actualizar', async () => {
+    const fixture = await setup(true);
+    const history: HTMLDetailsElement = fixture.nativeElement.querySelector('.request-history');
+    expect(history.open).toBe(false);
+
+    (history.querySelector('summary') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(history.open).toBe(true);
+    expect(history.textContent).toContain('Luna');
+    expect(history.textContent).toContain('PENDIENTE');
+
+    const refresh: HTMLButtonElement = history.querySelector('.request-refresh');
+    expect(refresh.classList.contains('catalog-next')).toBe(true);
+    refresh.click();
+    http.expectOne(`${base}/solicitudes-adopcion/mias`).flush([]);
+    fixture.detectChanges();
+  });
+
   it('exige responder las preguntas antes de enviar', async () => {
     const fixture = await setup(false, false);
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
