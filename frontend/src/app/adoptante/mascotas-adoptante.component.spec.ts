@@ -77,6 +77,40 @@ describe('Solicitud de adopción', async () => {
     expect(fixture.nativeElement.querySelector('.request-button').disabled).toBe(true);
   });
 
+  it('despliega el resumen de solicitudes y usa el estilo verde de paginación al actualizar', () => {
+    sessionStorage.clear();
+    TestBed.configureTestingModule({
+      imports: [MascotasAdoptanteComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } }]
+    });
+    const fixture = TestBed.createComponent(MascotasAdoptanteComponent);
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+
+    http.expectOne(`${base}/solicitudes-adopcion/mias`).flush([request]);
+    http.expectOne(req => req.url === `${base}/animales/catalogo`
+      && req.params.get('page') === '0' && req.params.get('especie') === 'TODAS')
+      .flush({ content: [], number: 0, size: 12, totalElements: 0, totalPages: 0 });
+    fixture.detectChanges();
+
+    const history: HTMLDetailsElement = fixture.nativeElement.querySelector('.request-history');
+    expect(history).not.toBeNull();
+    expect(history.open).toBe(false);
+
+    (history.querySelector('summary') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(history.open).toBe(true);
+    expect(history.textContent).toContain('Luna');
+    expect(history.textContent).toContain('PENDIENTE');
+
+    const refresh = history.querySelector<HTMLButtonElement>('.request-refresh')!;
+    expect(refresh.classList.contains('catalog-next')).toBe(true);
+    refresh.click();
+    http.expectOne(`${base}/solicitudes-adopcion/mias`).flush([]);
+    fixture.detectChanges();
+  });
+
   it('exige responder las preguntas antes de enviar', async () => {
     const fixture = await setup(false, false);
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('.send-request-button');
