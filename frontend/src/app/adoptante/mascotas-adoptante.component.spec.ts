@@ -77,9 +77,25 @@ describe('Solicitud de adopción', async () => {
     expect(fixture.nativeElement.querySelector('.request-button').disabled).toBe(true);
   });
 
-  it('despliega el resumen de solicitudes y usa el estilo verde de paginación al actualizar', async () => {
-    const fixture = await setup(true);
+  it('despliega el resumen de solicitudes y usa el estilo verde de paginación al actualizar', () => {
+    sessionStorage.clear();
+    TestBed.configureTestingModule({
+      imports: [MascotasAdoptanteComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({}) } } }]
+    });
+    const fixture = TestBed.createComponent(MascotasAdoptanteComponent);
+    http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+
+    http.expectOne(`${base}/solicitudes-adopcion/mias`).flush([request]);
+    http.expectOne(req => req.url === `${base}/animales/catalogo`
+      && req.params.get('page') === '0' && req.params.get('especie') === 'TODAS')
+      .flush({ content: [], number: 0, size: 12, totalElements: 0, totalPages: 0 });
+    fixture.detectChanges();
+
     const history: HTMLDetailsElement = fixture.nativeElement.querySelector('.request-history');
+    expect(history).not.toBeNull();
     expect(history.open).toBe(false);
 
     (history.querySelector('summary') as HTMLElement).click();
