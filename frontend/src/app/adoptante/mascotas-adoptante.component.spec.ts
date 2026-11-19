@@ -88,7 +88,7 @@ describe('Solicitud de adopción', async () => {
     expect(history.textContent).toContain('Luna');
     expect(history.textContent).toContain('PENDIENTE');
 
-    const refresh: HTMLButtonElement = history.querySelector('.request-refresh');
+    const refresh = history.querySelector<HTMLButtonElement>('.request-refresh')!;
     expect(refresh.classList.contains('catalog-next')).toBe(true);
     refresh.click();
     http.expectOne(`${base}/solicitudes-adopcion/mias`).flush([]);
