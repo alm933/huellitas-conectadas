@@ -42,7 +42,7 @@ public class AnimalService {
             AnimalFotoRepository fotoRepository,
             OrganizacionRepository organizacionRepository,
             GarageStorageService garageStorageService,
-            @Value("${app.api.public-url:https://spring.itechk.us}") String apiPublicUrl) {
+            @Value("${APP_API_PUBLIC_URL:${app.api.public-url:https://spring.itechk.us}}") String apiPublicUrl) {
         this.animalRepository = animalRepository;
         this.solicitudRepository = solicitudRepository;
         this.fotoRepository = fotoRepository;
