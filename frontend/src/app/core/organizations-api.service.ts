@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { OrganizationSummary } from './models';
+import { API_BASE_URL } from './api-url';
 
 export type OrganizationUpdate = Pick<OrganizationSummary,
   'nombre' | 'tipo' | 'correo' | 'telefono' | 'direccion' | 'distrito' | 'descripcion' | 'fotoUrl'>;
@@ -8,7 +9,7 @@ export type OrganizationUpdate = Pick<OrganizationSummary,
 @Injectable({ providedIn: 'root' })
 export class OrganizationsApiService {
   private readonly http = inject(HttpClient);
-  private readonly base = 'https://spring.itechk.us/api/v1/organizaciones';
+  private readonly base = `${API_BASE_URL}/organizaciones`;
 
   list() {
     return this.http.get<OrganizationSummary[]>(this.base);

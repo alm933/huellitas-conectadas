@@ -10,7 +10,7 @@ Plataforma web académica para conectar a personas interesadas en adoptar animal
 - **Seguridad.** Spring autentica con JWT. Angular usa una cookie de sesión, recupera el rol al recargar y protege las rutas con Guards.
 - **Documentación y pruebas.** Swagger UI permite consultar OpenAPI y ejecutar peticiones. GitHub Actions compila y prueba Angular y Spring.
 
-[Aplicación web](https://hc.itechk.us) · [Swagger UI](https://spring.itechk.us/swagger-ui.html) · [OpenAPI JSON](https://spring.itechk.us/v3/api-docs)
+[Aplicación nueva](https://huellitasconectas.online) · [API y Swagger](https://spring.itechk.us/swagger-ui.html) · [Aplicación anterior](https://hc.itechk.us)
 
 ## Tecnologías
 
@@ -152,6 +152,20 @@ La autorización no se configura para persistir entre recargas de Swagger.
 La prueba usa H2 en memoria y credenciales ficticias, sin conectarse a MySQL ni subir archivos a Garage.
 La suite verifica OpenAPI, Swagger UI, autenticación con cookie y Bearer JWT, protección de operaciones con cookie, códigos `401` y `403`, paginación y reglas del ciclo de adopción.
 
+## Dominio adicional huellitasconectas.online
+
+El dominio nuevo sirve el frontend Angular. Spring Boot y la API permanecen en `spring.itechk.us`; no se crea un subdominio de API ni otro proceso.
+
+| Hostname público | Destino |
+|---|---|
+| `huellitasconectas.online` | El servicio que entrega el build de Angular |
+| `www.huellitasconectas.online` | El mismo servicio de Angular, o redirección al dominio raíz |
+| `spring.itechk.us` | El servicio Spring Boot existente en el puerto 8080 |
+
+Angular usa `https://spring.itechk.us/api/v1` tanto desde el dominio nuevo como desde `hc.itechk.us`. Spring permite por CORS los orígenes HTTPS raíz y `www` del dominio nuevo. Las fotos también continúan usando URLs públicas bajo `spring.itechk.us`.
+
+La sesión web necesita que el navegador envíe la cookie entre sitios distintos. Por eso la cookie se configura con `HttpOnly`, `Secure` y `SameSite=None`, y las peticiones usan credenciales con una lista CORS exacta. La cookie no es visible para JavaScript. Algunos navegadores o configuraciones pueden bloquear cookies de terceros; tras agregar el hostname nuevo en Cloudflare Tunnel, prueba inicio de sesión, recarga, solicitudes y cierre de sesión desde el dominio nuevo.
+
 ## Garage S3
 
 El backend necesita estas variables de entorno para conectarse al almacenamiento:
@@ -180,10 +194,10 @@ La aplicación también admite `app.api.public-url` para construir las URLs púb
 - La publicación y gestión de mascotas requieren rol `ORGANIZACION`; el servicio valida que la organización esté activa y sea propietaria de la mascota.
 - Crear, editar o eliminar organizaciones directamente por la API, así como cambiar su estado, requiere autoridad `ADMIN`.
 - Las fotos tienen una ruta de lectura pública para que el navegador pueda mostrarlas.
-- El backend habilita CORS para los orígenes configurados en `SecurityConfig`. Si cambia la dirección o el puerto del frontend, hay que actualizar la lista de orígenes permitidos.
-- El frontend apunta a `https://spring.itechk.us/api/v1`. Si cambia el origen de la API, actualiza las URLs de los servicios en `frontend/src/app/core/` y el origen reconocido por el interceptor de credenciales en `frontend/src/app/app.config.ts`.
+- El backend habilita CORS con credenciales para los orígenes exactos configurados en `SecurityConfig`, incluidos `https://huellitasconectas.online`, `https://www.huellitasconectas.online` y el dominio anterior.
+- Angular usa `https://spring.itechk.us/api/v1` desde ambos dominios; el interceptor adjunta credenciales y la cabecera de protección en escrituras.
 
-Spring entrega el JWT de la sesión web en la cookie `__Host-huellitas-session` con `HttpOnly`, `Secure` y `SameSite=Lax`. JavaScript recibe el correo y el rol. Al recargar, Angular consulta `/auth/session` para restaurar el estado. Al cerrar sesión, Spring expira la cookie y Angular vuelve al login. El JWT firmado conserva su vigencia hasta la expiración.
+Spring entrega el JWT de la sesión web en la cookie `__Host-huellitas-session` con `HttpOnly`, `Secure` y `SameSite=None` para permitir peticiones con credenciales desde el frontend adicional. JavaScript recibe el correo y el rol. Al recargar, Angular consulta `/auth/session` para restaurar el estado. Al cerrar sesión, Spring expira la cookie y Angular vuelve al login. El JWT firmado conserva su vigencia hasta la expiración.
 
 Angular envía las solicitudes a la API con credenciales y añade `X-Huellitas-Request: 1` a las operaciones que modifican datos. Spring exige esa cabecera para las operaciones con cookie y restringe los orígenes mediante CORS. Las contraseñas se almacenan como hashes BCrypt.
 
@@ -240,7 +254,7 @@ npm ci
 npm start -- --host 0.0.0.0
 ```
 
-Angular escucha en el puerto 4200 para desarrollo. Para probar el flujo completo de sesión por cookie, abre el frontend y la API mediante HTTPS en el mismo sitio, como `hc.itechk.us` y `spring.itechk.us`. Si usas un entorno distinto, configura sus orígenes en Angular y Spring. Para generar la compilación del frontend, ejecuta `npm run build`.
+Angular escucha en el puerto 4200 para desarrollo. Para probar el flujo de sesión, abre el frontend y la API por HTTPS. El sitio adicional en `.online` llama a la API existente `spring.itechk.us`; algunos navegadores pueden bloquear cookies cross-site, así que valida login y recarga en el navegador de destino. Para generar la compilación del frontend, ejecuta `npm run build`.
 
 ## Flujo de uso
 

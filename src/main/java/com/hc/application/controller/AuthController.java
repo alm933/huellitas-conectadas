@@ -87,7 +87,7 @@ public class AuthController {
 
     private String sessionCookie(String token, Duration maxAge) {
         return ResponseCookie.from(JwtAuthenticationFilter.SESSION_COOKIE, token)
-                .httpOnly(true).secure(true).sameSite("Lax").path("/").maxAge(maxAge)
+                .httpOnly(true).secure(true).sameSite("None").path("/").maxAge(maxAge)
                 .build().toString();
     }
 
