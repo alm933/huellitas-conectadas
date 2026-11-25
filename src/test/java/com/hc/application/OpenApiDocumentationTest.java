@@ -51,9 +51,10 @@ class OpenApiDocumentationTest {
         mvc.perform(post(auth + "/login/browser").contentType("application/json").content(payload))
                 .andExpect(status().isBadRequest());
         var login = mvc.perform(post(auth + "/login/browser")
-                .header("Origin", "https://hc.itechk.us").header(browserHeader, "1")
+                .header("Origin", "https://huellitasconectas.online").header(browserHeader, "1")
                 .contentType("application/json").content(payload))
                 .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://huellitasconectas.online"))
                 .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.role").value("ADOPTANTE"))
@@ -61,7 +62,7 @@ class OpenApiDocumentationTest {
         String setCookie = login.getHeader("Set-Cookie");
         org.junit.jupiter.api.Assertions.assertNotNull(setCookie);
         org.junit.jupiter.api.Assertions.assertTrue(setCookie.contains("HttpOnly")
-                && setCookie.contains("Secure") && setCookie.contains("SameSite=Lax"));
+                && setCookie.contains("Secure") && setCookie.contains("SameSite=None"));
         String token = setCookie.substring(cookieName.length() + 1, setCookie.indexOf(';'));
         var cookie = new jakarta.servlet.http.Cookie(cookieName, token);
 
