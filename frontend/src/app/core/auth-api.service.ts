@@ -1,11 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { AdoptanteRegistration, LoginResponse, OrganizacionRegistration, RegistrationResponse } from './models';
+import { API_BASE_URL } from './api-url';
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
-  private readonly base = 'https://spring.itechk.us/api/v1/auth';
+  private readonly base = `${API_BASE_URL}/auth`;
 
   login(email: string, pass: string) {
     return this.http.post<LoginResponse>(`${this.base}/login/browser`, { email, pass });
