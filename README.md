@@ -10,7 +10,7 @@ Plataforma web académica para conectar a personas interesadas en adoptar animal
 - **Seguridad.** Spring autentica con JWT. Angular usa una cookie de sesión, recupera el rol al recargar y protege las rutas con Guards.
 - **Documentación y pruebas.** Swagger UI permite consultar OpenAPI y ejecutar peticiones. GitHub Actions compila y prueba Angular y Spring.
 
-[Aplicación web](https://hc.itechk.us) · [Swagger UI](https://spring.itechk.us/swagger-ui.html) · [OpenAPI JSON](https://spring.itechk.us/v3/api-docs)
+[Aplicación web nueva](https://huellitasconectas.online) · [Swagger UI nuevo](https://api.huellitasconectas.online/swagger-ui.html) · [Aplicación anterior](https://hc.itechk.us) · [Swagger anterior](https://spring.itechk.us/swagger-ui.html)
 
 ## Tecnologías
 
@@ -151,6 +151,24 @@ La autorización no se configura para persistir entre recargas de Swagger.
 
 La prueba usa H2 en memoria y credenciales ficticias, sin conectarse a MySQL ni subir archivos a Garage.
 La suite verifica OpenAPI, Swagger UI, autenticación con cookie y Bearer JWT, protección de operaciones con cookie, códigos `401` y `403`, paginación y reglas del ciclo de adopción.
+
+## Dominio huellitasconectas.online
+
+La aplicación Angular reconoce `huellitasconectas.online` y `www.huellitasconectas.online` y usa la API en `https://api.huellitasconectas.online/api/v1`. Para mantener el sitio anterior, el resto de hosts continúa usando `https://spring.itechk.us/api/v1`.
+
+Para publicar el dominio nuevo, configura Cloudflare Tunnel con estos hostnames:
+
+| Hostname público | Servicio local |
+|---|---|
+| `huellitasconectas.online` | El servicio que entrega el build de Angular |
+| `www.huellitasconectas.online` | El mismo servicio de Angular, o una redirección al dominio raíz |
+| `api.huellitasconectas.online` | `http://localhost:8080` (Spring Boot) |
+
+Spring permite por CORS los orígenes HTTPS raíz y `www`. Las cookies de sesión siguen siendo `HttpOnly`, `Secure` y `SameSite=Lax`; al estar frontend y API bajo el mismo dominio registrable `.online`, el navegador puede enviar la cookie en las peticiones entre subdominios. El atributo `Domain` no se configura en la cookie `__Host-`.
+
+En el servidor, define `APP_API_PUBLIC_URL=https://api.huellitasconectas.online` en el archivo de variables que carga Spring y reinicia el backend. Esta dirección se usa para construir URLs públicas de las fotos. Sin la variable, se conserva `https://spring.itechk.us`.
+
+Después de agregar la ruta `api.huellitasconectas.online` en Cloudflare Tunnel y desplegar el backend actualizado, comprueba `/swagger-ui.html`, `/v3/api-docs`, el catálogo y el inicio/cierre de sesión desde el dominio nuevo. Un build correcto por sí solo no configura el DNS ni el túnel.
 
 ## Garage S3
 
