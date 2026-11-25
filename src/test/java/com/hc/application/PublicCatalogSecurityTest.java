@@ -1,6 +1,8 @@
 package com.hc.application;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,5 +43,24 @@ class PublicCatalogSecurityTest {
 
         mvc.perform(get("/api/v1/animales"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void preflightAllowsTheNewFrontendWithCredentialedRequests() throws Exception {
+        mvc.perform(options("/api/v1/auth/session")
+                        .header("Origin", "https://huellitasconectas.online")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin",
+                        "https://huellitasconectas.online"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+    }
+
+    @Test
+    void preflightRejectsUnregisteredOrigins() throws Exception {
+        mvc.perform(options("/api/v1/auth/session")
+                        .header("Origin", "https://sitio-no-autorizado.example")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isForbidden());
     }
 }
