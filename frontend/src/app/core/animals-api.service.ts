@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Animal, AnimalPhoto, AnimalPublicationResponse, AnimalRequest } from './models';
+import { API_BASE_URL } from './api-url';
 
 export type CatalogSpecies = 'TODAS' | 'PERRO' | 'GATO' | 'OTRO';
 
@@ -15,7 +16,7 @@ export interface CatalogPage {
 @Injectable({ providedIn: 'root' })
 export class AnimalsApiService {
   private readonly http = inject(HttpClient);
-  private readonly base = 'https://spring.itechk.us/api/v1/animales';
+  private readonly base = `${API_BASE_URL}/animales`;
 
   list() { return this.http.get<Animal[]>(this.base); }
   catalog(page: number, especie: CatalogSpecies) {
