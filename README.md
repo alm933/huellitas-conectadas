@@ -198,8 +198,8 @@ La aplicación también admite `app.api.public-url` para construir las URLs púb
 - La publicación y gestión de mascotas requieren rol `ORGANIZACION`; el servicio valida que la organización esté activa y sea propietaria de la mascota.
 - Crear, editar o eliminar organizaciones directamente por la API, así como cambiar su estado, requiere autoridad `ADMIN`.
 - Las fotos tienen una ruta de lectura pública para que el navegador pueda mostrarlas.
-- El backend habilita CORS para los orígenes configurados en `SecurityConfig`. Si cambia la dirección o el puerto del frontend, hay que actualizar la lista de orígenes permitidos.
-- El frontend apunta a `https://spring.itechk.us/api/v1`. Si cambia el origen de la API, actualiza las URLs de los servicios en `frontend/src/app/core/` y el origen reconocido por el interceptor de credenciales en `frontend/src/app/app.config.ts`.
+- El backend habilita CORS con credenciales para los orígenes exactos configurados en `SecurityConfig`, incluidos `https://huellitasconectas.online`, `https://www.huellitasconectas.online` y el dominio anterior.
+- La API usada por Angular se selecciona por host en `frontend/src/app/core/api-url.ts`: el dominio nuevo usa `https://api.huellitasconectas.online/api/v1` y el sitio anterior mantiene `https://spring.itechk.us/api/v1`. El interceptor toma esa misma URL para adjuntar las credenciales y la cabecera de protección en escrituras.
 
 Spring entrega el JWT de la sesión web en la cookie `__Host-huellitas-session` con `HttpOnly`, `Secure` y `SameSite=Lax`. JavaScript recibe el correo y el rol. Al recargar, Angular consulta `/auth/session` para restaurar el estado. Al cerrar sesión, Spring expira la cookie y Angular vuelve al login. El JWT firmado conserva su vigencia hasta la expiración.
 
